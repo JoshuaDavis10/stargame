@@ -1,0 +1,11 @@
+- need to create an input state that keeps track of which keys/buttons
+are currently down and where the mouse is
+
+- I need to get window resizing figured out, maybe keep a 
+consistent aspect ratio? + be able to full screen
+	- get window resize event
+	- manually resize window to preserve aspect ratio
+	- simple window operations section (13) in xcb "tutorial"
+	documentation for that 2nd thing
+	- how to full screen?
+

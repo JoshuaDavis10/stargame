@@ -774,17 +774,26 @@ https://lists.freedesktop.org/pipermail/xcb/2010-December/006714.html
 
 		TODO: store all the info you got into a global state
 
-		TODO: maybe do some organizing before we move on
-
 11) text + fonts
 
 	TODO: do I really care about this section?
+	NOTE: these sections are short anyways and you
+	will work through them very fast now that you have 
+	a good understanding of the library
 
 12) interacting with window manager
 
 	TODO: do I really care about this section?
+	NOTE: these sections are short anyways and you
+	will work through them very fast now that you have 
+	a good understanding of the library
 
 13) window operations
+
+	TODO: I need to get window resizing figured out, maybe keep a 
+	consistent aspect ratio? + be able to full screen
+	- get window resize event
+	- manually resize window to preserve aspect ratio
 
 14) color
 
@@ -794,9 +803,31 @@ https://lists.freedesktop.org/pipermail/xcb/2010-December/006714.html
 
 	NOTE: this the good stuff I think.
 
+	xcb_copy_ somethin. it's kind of like the bitblit on window?
+	but check what handmade hero uses again so that you can do
+	smn similar
+
 TODO: this might be where you want to stop and start working on
 the actual game (i.e. having a window that does everything you need
 to start writing a game, cursor stuff is like a fun thing you could 
 come back to later lol)
 
 16) Cursor
+
+FULLSCREEN:
+- so it looks like (at least on Ubuntu) you fullscreen similarly to
+registering for WM_DESTROY events, except instead with _NET_WM_STATE/
+_NET_WM_STATE_FULLSCREEN
+- it also will fullscreen regardless of like screen size I guess
+anyways, I'll just set it to screen size either way
+
+GRAPHICS:
+- it's okay to screw this up the first few times, just try things
+- I think there's an xcb_copy_smn function that will copy pixels to 
+screen?
+- okay so I need to create a pixmap then fill it with stuff, then use
+xcb_copy_area to copy that pixmap to the window
+- http://metan.ucw.cz/blog/things-i-wanted-to-know-about-libxcb.html
+^^^ this will help a ton
+- got it working!!! NOTE: also added error checking to the event loop
+(asserts for now)
