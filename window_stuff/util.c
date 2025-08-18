@@ -25,6 +25,7 @@ void LOG_ERROR(const char *message, ...) {
 	char output[MAX_LOGGER_MESSAGE_SIZE];
 	va_list arg_ptr;
 	va_start(arg_ptr, message);
+	/* NOTE: vsnprintf is not in C89 standard? */
     vsnprintf(output, MAX_LOGGER_MESSAGE_SIZE, message, arg_ptr);
 	va_end(arg_ptr);
 	printf("\e[0;31m[ERROR]: %s\e[0m\n", output);

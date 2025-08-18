@@ -23,11 +23,13 @@ typedef double f64;
 #define false 0
 
 #include "util.c"
+#include "game.c"
 #include "xcb_input.c" /* NOTE: my xcb input utils file */
 
 static x_keymap_info x_global_keymap_info = {0};
 static u16 x_global_window_width = 1000;
 static u16 x_global_window_height = 500;
+static game_input_state x_global_input_state = {0};
 
 int main(int argc, char **argv) 
 {
@@ -232,20 +234,6 @@ int main(int argc, char **argv)
 	u8 *x_pixmap_data;
 	x_pixmap_data = malloc(sizeof(*x_pixmap_data) *
 			(x_global_window_width * x_global_window_height * 4));
-	u32 pixel;
-	u32 row;
-	u32 col;
-	for(pixel = 0; 
-			pixel < (x_global_window_width * x_global_window_height);
-			pixel++) 
-	{
-				row = pixel / x_global_window_width;
-				col = pixel % x_global_window_width;
-				x_pixmap_data[4*pixel] = row;
-				x_pixmap_data[4*pixel+1] = 0;
-				x_pixmap_data[4*pixel+2] = col;
-				x_pixmap_data[4*pixel+3] = 0;
-	}
 
 	/* NOTE: create pixmap and put pixel array into it */
 	xcb_pixmap_t x_backbuffer = xcb_generate_id(x_connection);
@@ -308,6 +296,26 @@ int main(int argc, char **argv)
 				} break;
 				case XCB_EXPOSE: 
 				{
+					/* TODO: we may need to do this every loop
+					 * if this isn't working the way we want
+					 */
+					game_update_and_render(
+							x_pixmap_data, 
+							x_global_window_width,
+							x_global_window_height,
+							&x_global_input_state);
+					xcb_put_image(
+							x_connection,
+							XCB_IMAGE_FORMAT_Z_PIXMAP,
+							x_backbuffer,
+							x_graphics_context, 
+							x_global_window_width,
+							x_global_window_height,
+							0, 0, 0,
+							x_screen->root_depth,
+							x_global_window_width * 
+							x_global_window_height * 4,
+							x_pixmap_data);
 					xcb_copy_area (
 							x_connection,
 							x_backbuffer,
@@ -316,13 +324,10 @@ int main(int argc, char **argv)
 							0, 0, 0, 0,
 							x_global_window_width,
 							x_global_window_height);
-
-					xcb_flush(x_connection);
 					LOG_DEBUG("Expose event receieved");
 				} break;
 				case XCB_KEY_PRESS:
 				{
-					/* TODO: merge press/release events */
 					xcb_key_press_event_t *x_key_press_event = 
 						(xcb_key_press_event_t *)x_event;
 
@@ -336,13 +341,10 @@ int main(int argc, char **argv)
 								x_global_keymap_info,
 								key_press_event_keycode);
 
-					x_print_keysym(key_press_event_keysym); 
-					printf("pressed\n");
-
-					/* TODO: create some input state that is 
-					 * changed by key press events
-					 */
-
+					x_register_key_stroke(
+							&x_global_input_state, 
+							key_press_event_keysym,
+							true);
 				} break;
 				case XCB_KEY_RELEASE:
 				{
@@ -359,24 +361,15 @@ int main(int argc, char **argv)
 								x_global_keymap_info,
 								key_release_event_keycode);
 
-					x_print_keysym(key_release_event_keysym); 
-					printf("released\n");
-
-					/* TODO: create some input state that is 
-					 * changed by key events
-					 */
-
+					x_register_key_stroke(
+							&x_global_input_state, 
+							key_release_event_keysym,
+							false);
 				} break;
 				case XCB_BUTTON_PRESS:
 				{
-					/* TODO: merge press/release events */
 					xcb_button_press_event_t *x_mouse_button_press_event =
 						(xcb_button_press_event_t *)x_event;
-
-					x_print_mouse_button(
-							x_mouse_button_press_event->detail);
-
-					printf("button pressed\n");
 
 					/* TODO: create some input state that is 
 					 * changed by mouse button events
@@ -389,10 +382,9 @@ int main(int argc, char **argv)
 					*x_mouse_button_release_event =
 						(xcb_button_release_event_t *)x_event;
 
-					x_print_mouse_button(
-							x_mouse_button_release_event->detail);
-
-					printf("button released\n");
+					/* TODO: create some input state that is 
+					 * changed by mouse button events
+					 */
 
 				} break;
 				case XCB_MOTION_NOTIFY:
@@ -439,12 +431,39 @@ int main(int argc, char **argv)
 					}
 				} break;
 				default: {
+							 /*
 					LOG_DEBUG("default event:\nresponse type = %u", 
 							x_event->response_type); 
+							*/
 				} break;
 			}
 			free(x_event); /*NOTE: every loop... seriously*/
 		}
+		game_update_and_render(
+				x_pixmap_data, 
+				x_global_window_width,
+				x_global_window_height,
+				&x_global_input_state);
+		xcb_put_image(
+				x_connection,
+				XCB_IMAGE_FORMAT_Z_PIXMAP,
+				x_backbuffer,
+				x_graphics_context, 
+				x_global_window_width,
+				x_global_window_height,
+				0, 0, 0,
+				x_screen->root_depth,
+				x_global_window_width * 
+				x_global_window_height * 4,
+				x_pixmap_data);
+		xcb_copy_area (
+				x_connection,
+				x_backbuffer,
+				x_window_id,
+				x_graphics_context,
+				0, 0, 0, 0,
+				x_global_window_width,
+				x_global_window_height);
 	}
 
 	/* NOTE: these are technically optional I think, but might

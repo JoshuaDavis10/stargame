@@ -772,7 +772,67 @@ https://lists.freedesktop.org/pipermail/xcb/2010-December/006714.html
 
 		anyways, the application friggin' closes now
 
-		TODO: store all the info you got into a global state
+		DONE: store all the info you got into a global state
+		DONE: have an api in "game" layer that will draw rectangles
+		(i.e. a renderer!)
+			- pass input state + pixel buffer to game layer
+			- game layer processes the input state + draws stuff
+			in pixel buffer, simple!
+
+		^^^^ GOT GAME LAYER TO FILL PIXEL BUFFER BUT IT'S NOT RENDERING,
+		ITS JUST LIKE A BLACK SCREEN BASICALLY
+
+		NOTE: okay rendering + input working, now just have to write 
+		pong code in game layer. make any changes to platform layer 
+		needed as well
+		- this required doing the game_update_and_render, xcb_put_image,
+		and xcb_copy_area functions every "frame"
+
+		TODO: currently building pong. lots to do here and lots to
+		research esp wrt collision, velocity, etc. i.e. basic
+		2D physics stuff (also how tf to draw a circle). also framerate
+		for consistent physics? or have it be based on a delta t so that
+		framerate is "irrelevant"
+		- I'll need to divide that up into platform layer stuff and game
+		code stuff so that it's clear what to work on
+
+		- going to do AABB (axis-aligned bounding box) code for collision
+		rq
+		- AABB almost working. gotta tweak one thing, then I think
+		we got it
+			- kinda worked mostly, but getting some weird behavior
+			on collisions up top or bottom? only when paddles are moving
+			tho..
+		OKAY fixed. so basically the paddle would squeeze the ball
+		but keep moving, so then the ball would go inside the paddle
+		which made the collision all fricked up. so I did a check that
+		doesn't allow the paddle to move if it is currently colliding
+		with ball
+		- FIXED: ball reappears on opposite side it passes through
+		for some reason. I mean this is end-game condition
+		so that issue might just go away if you have logic
+		to end the game once the ball passes a certain point
+
+		- TODO: might want to switch to a world coordinate system (i.e.
+		floats that then map to pixel buffer through some coordinate
+		conversion) before doing more complex things
+		- TODO: ^ in that same vein, get a "framerate" 
+		OR delta T based physics thing running so you don't have to 
+		worry about framerate
+		- after that, I'll have to figure out how to draw a circle
+		and how to do circle on square collision or whatever
+		(can have an initial check with AABB tho or smn)
+
+		TODO: ^ if any useful code comes out of all of that, could
+		be good to reuse. (MOST LIKELY JUST THE RENDERING FUNCTIONS
+		WILL BE USEFUL + WORLD COORDINATE SYSTEM) I want to avoid a 
+		like full rewrite since I'm not out here to make pong. 
+		I just want a jank, working version of pong so I can move 
+		on to more interesting things and note what I learned.
+
+		TODO: forcing framerate?
+		TODO: more physics stuff
+		TODO: sound?
 
 11) text + fonts
 
@@ -807,11 +867,6 @@ https://lists.freedesktop.org/pipermail/xcb/2010-December/006714.html
 	but check what handmade hero uses again so that you can do
 	smn similar
 
-TODO: this might be where you want to stop and start working on
-the actual game (i.e. having a window that does everything you need
-to start writing a game, cursor stuff is like a fun thing you could 
-come back to later lol)
-
 16) Cursor
 
 FULLSCREEN:
@@ -831,3 +886,13 @@ xcb_copy_area to copy that pixmap to the window
 ^^^ this will help a ton
 - got it working!!! NOTE: also added error checking to the event loop
 (asserts for now)
+
+TODO: 
+IMAGES/TEXTURES
+- start by having an api to draw like squares/rectangles by setting
+pixels in the graphics buffer
+	-> honestly at that point you could have a little game. building
+	a little game (like maybe pong) would be a good way to get the
+	platform/game layer separated out cleanly
+- goal is to have a way to render a .png file or smn like that.
+do we need stb image or smn similar?

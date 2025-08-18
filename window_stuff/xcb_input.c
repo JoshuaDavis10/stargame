@@ -109,6 +109,212 @@ xcb_keysym_t x_get_keysym_from_keycode(
 	return info.x_key_symbols_table[x_keycode];
 }
 
+/* 
+ * @brief registers the key stroke into the game input state
+ * @param input: pointer to input state
+ * @param keysym: key symbol of key that was pressed/released
+ * @param pressed: true if pressed, false if released
+ */
+void x_register_key_stroke(
+	game_input_state *input, 
+	xcb_keysym_t keysym,
+	b8 pressed)
+{
+	switch(keysym) {
+		case X_KEY_BACKSPACE: {
+			input->backspace = pressed;
+		} break;
+		case X_KEY_TAB: {
+			input->tab = pressed;
+		} break;
+		case X_KEY_ENTER: {
+			input->enter = pressed;
+		} break;
+		case X_KEY_ESCAPE: {
+			input->escape = pressed;
+		} break;
+		case X_KEY_LEFT_ARROW: {
+			input->left_arrow = pressed;
+		} break;
+		case X_KEY_UP_ARROW: {
+			input->up_arrow = pressed;
+		} break;
+		case X_KEY_RIGHT_ARROW: {
+			input->right_arrow = pressed;
+		} break;
+		case X_KEY_DOWN_ARROW: {
+			input->down_arrow = pressed;
+		} break;
+		case X_KEY_F1: {
+			input->fkeys[0] = pressed;
+		} break;
+		case X_KEY_F2: {
+			input->fkeys[1] = pressed;
+		} break;
+		case X_KEY_F3: {
+			input->fkeys[2] = pressed;
+		} break;
+		case X_KEY_F4: {
+			input->fkeys[3] = pressed;
+		} break;
+		case X_KEY_F5: {
+			input->fkeys[4] = pressed;
+		} break;
+		case X_KEY_F6: {
+			input->fkeys[5] = pressed;
+		} break;
+		case X_KEY_F7: {
+			input->fkeys[6] = pressed;
+		} break;
+		case X_KEY_F8: {
+			input->fkeys[7] = pressed;
+		} break;
+		case X_KEY_F9: {
+			input->fkeys[8] = pressed;
+		} break;
+		case X_KEY_F10: {
+			input->fkeys[9] = pressed;
+		} break;
+		case X_KEY_F11: {
+			input->fkeys[10] = pressed;
+		} break;
+		case X_KEY_F12: {
+			input->fkeys[11] = pressed;
+		} break;
+
+		case X_KEY_LEFT_SHIFT: {
+			input->left_shift = pressed;
+		} break;
+		case X_KEY_RIGHT_SHIFT: {
+			input->right_shift = pressed;
+		} break;
+		case X_KEY_LEFT_CONTROL: {
+			input->left_control = pressed;
+		} break;
+		case X_KEY_RIGHT_CONTROL: {
+			input->right_control = pressed;
+		} break;
+
+		case X_KEY_A: {
+			input->letters[0] = pressed;
+		} break;
+		case X_KEY_B: {
+			input->letters[1] = pressed;
+		} break;
+		case X_KEY_C: {
+			input->letters[2] = pressed;
+		} break;
+		case X_KEY_D: {
+			input->letters[3] = pressed;
+		} break;
+		case X_KEY_E: {
+			input->letters[4] = pressed;
+		} break;
+		case X_KEY_F: {
+			input->letters[5] = pressed;
+		} break;
+		case X_KEY_G: {
+			input->letters[6] = pressed;
+		} break;
+		case X_KEY_H: {
+			input->letters[7] = pressed;
+		} break;
+		case X_KEY_I: {
+			input->letters[8] = pressed;
+		} break;
+		case X_KEY_J: {
+			input->letters[9] = pressed;
+		} break;
+		case X_KEY_K: {
+			input->letters[10] = pressed;
+		} break;
+		case X_KEY_L: {
+			input->letters[11] = pressed;
+		} break;
+		case X_KEY_M: {
+			input->letters[12] = pressed;
+		} break;
+		case X_KEY_N: {
+			input->letters[13] = pressed;
+		} break;
+		case X_KEY_O: {
+			input->letters[14] = pressed;
+		} break;
+		case X_KEY_P: {
+			input->letters[15] = pressed;
+		} break;
+		case X_KEY_Q: {
+			input->letters[16] = pressed;
+		} break;
+		case X_KEY_R: {
+			input->letters[17] = pressed;
+		} break;
+		case X_KEY_S: {
+			input->letters[18] = pressed;
+		} break;
+		case X_KEY_T: {
+			input->letters[19] = pressed;
+		} break;
+		case X_KEY_U: {
+			input->letters[20] = pressed;
+		} break;
+		case X_KEY_V: {
+			input->letters[21] = pressed;
+		} break;
+		case X_KEY_W: {
+			input->letters[22] = pressed;
+		} break;
+		case X_KEY_X: {
+			input->letters[23] = pressed;
+		} break;
+		case X_KEY_Y: {
+			input->letters[24] = pressed;
+		} break;
+		case X_KEY_Z: {
+			input->letters[25] = pressed;
+		} break;
+		case X_KEY_SPACE: {
+			input->spacebar = pressed;
+		} break;
+
+		case X_KEY_ZERO: {
+			input->numbers[0] = pressed;
+		} break;
+		case X_KEY_ONE: {
+			input->numbers[1] = pressed;
+		} break;
+		case X_KEY_TWO: {
+			input->numbers[2] = pressed;
+		} break;
+		case X_KEY_THREE: {
+			input->numbers[3] = pressed;
+		} break;
+		case X_KEY_FOUR: {
+			input->numbers[4] = pressed;
+		} break;
+		case X_KEY_FIVE: {
+			input->numbers[5] = pressed;
+		} break;
+		case X_KEY_SIX: {
+			input->numbers[6] = pressed;
+		} break;
+		case X_KEY_SEVEN: {
+			input->numbers[7] = pressed;
+		} break;
+		case X_KEY_EIGHT: {
+			input->numbers[8] = pressed;
+		} break;
+		case X_KEY_NINE: {
+			input->numbers[9] = pressed;
+		} break;
+		default: {
+			LOG_WARN("x_register_key_press: unidentified keysym %x", 
+					keysym);
+		} break;
+	}
+
+}
+
 /*
  * @brief loads key symbols into a table that is indexed by key codes
  * so that key symbols can easily be accessed when a key code is gotten

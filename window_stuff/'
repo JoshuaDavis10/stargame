@@ -1,0 +1,289 @@
+#include "game.h"
+
+/* TODO: temp for input testing */
+static i32 x_global_render_offset_x = 0;
+static i32 x_global_render_offset_y = 0;
+
+/* TODO: temp for pong */
+typedef struct {
+	u32 positions[2];	
+	u32 ball_position[2];
+	i32 ball_direction[2];
+} game_state;
+
+typedef struct {
+	i32 x;
+	i32 y;
+	u32 w;
+	u32 h;
+} rectangle;
+
+static game_state game_global_state = {0};
+static b8 game_global_initialized = 0;
+
+b8 check_collision_aabb(rectangle first, rectangle second);
+
+void draw_background_in_buffer(
+		u8 *pixel_buffer,
+		u16 buffer_width, 
+		u16 buffer_height); 
+
+void draw_fill_rectangle_in_buffer(
+		u8 *pixel_buffer, 
+		u32 x, u32 y, 
+		u32 w, u32 h,
+		u16 buffer_width, u16 buffer_height);
+
+void draw_nofill_rectangle_in_buffer(
+		u8 *pixel_buffer, 
+		u32 x, u32 y, 
+		u32 w, u32 h,
+		u16 buffer_width, u16 buffer_height);
+
+void game_update_and_render(
+		u8 *pixel_buffer, 
+		u16 pixel_buffer_width,
+		u16 pixel_buffer_height,
+		game_input_state *input) /* NOTE: passing pointer so as not to 
+									push massive input struct onto stack
+									*/
+{
+	if(!game_global_initialized)
+	{
+		game_global_state.positions[0] = pixel_buffer_height/2;
+		game_global_state.positions[1] = pixel_buffer_height/2;
+		game_global_state.ball_position[0] = pixel_buffer_width/2;
+		game_global_state.ball_position[1] = pixel_buffer_height/2;
+		game_global_state.ball_direction[0] = -2;
+		game_global_state.ball_direction[1] = 1;
+		game_global_initialized = true;
+	}
+
+	game_global_state.ball_position[0]+=
+		game_global_state.ball_direction[0];
+	game_global_state.ball_position[1]+=
+		game_global_state.ball_direction[1];
+
+	/* TODO: collision detection */
+
+	if(input->letters[22]) 
+	{
+		game_global_state.positions[0]--;
+	}
+	else if(input->letters[18])
+	{
+		game_global_state.positions[0]++;
+	}
+
+	if(input->up_arrow) 
+	{
+		game_global_state.positions[1]--;
+	}
+	else if(input->down_arrow)
+	{
+		game_global_state.positions[1]++;
+	}
+
+	/*
+	if(input->letters[22]) 
+	{
+		x_global_render_offset_y++;
+	}
+	if(input->letters[18])
+	{
+		x_global_render_offset_y--;
+	}
+	if(input->letters[0])
+	{
+		x_global_render_offset_x--;
+	}
+	if(input->letters[3])
+	{
+		x_global_render_offset_x++;
+	}
+	u32 pixel;
+	u32 row;
+	u32 col;
+	for(pixel = 0; 
+			pixel < (pixel_buffer_width * pixel_buffer_height);
+			pixel++) 
+	{
+				row = pixel / pixel_buffer_width;
+				col = pixel % pixel_buffer_width;
+				pixel_buffer[4*pixel] = row - x_global_render_offset_y;
+				pixel_buffer[4*pixel+1] = row - x_global_render_offset_y;
+				pixel_buffer[4*pixel+2] = col + x_global_render_offset_x;
+				pixel_buffer[4*pixel+3] = 0;
+	}
+	*/
+
+	draw_background_in_buffer(
+		pixel_buffer,
+		pixel_buffer_width, 
+		pixel_buffer_height);
+
+	/* TODO: scuffed hardcoded paddles */
+	draw_fill_rectangle_in_buffer(
+			pixel_buffer,
+			100, 
+			game_global_state.positions[0] - 100, 
+			50, 200,
+			pixel_buffer_width,
+			pixel_buffer_height);
+	draw_nofill_rectangle_in_buffer(
+			pixel_buffer,
+			100, 
+			game_global_state.positions[0] - 100, 
+			50, 200,
+			pixel_buffer_width,
+			pixel_buffer_height);
+
+	draw_fill_rectangle_in_buffer(
+			pixel_buffer,
+			pixel_buffer_width - 100, 
+			game_global_state.positions[1] - 100, 
+			50, 200,
+			pixel_buffer_width,
+			pixel_buffer_height);
+
+	draw_nofill_rectangle_in_buffer(
+			pixel_buffer,
+			pixel_buffer_width - 100, 
+			game_global_state.positions[1] - 100, 
+			50, 200,
+			pixel_buffer_width,
+			pixel_buffer_height);
+
+
+	draw_fill_rectangle_in_buffer(
+			pixel_buffer,
+			game_global_state.ball_position[0], 
+			game_global_state.ball_position[1], 
+			50, 50,
+			pixel_buffer_width,
+			pixel_buffer_height);
+
+	draw_nofill_rectangle_in_buffer(
+			pixel_buffer,
+			game_global_state.ball_position[0], 
+			game_global_state.ball_position[1], 
+			50, 50,
+			pixel_buffer_width,
+			pixel_buffer_height);
+}
+
+/* TODO: parameter to choose color */
+void draw_background_in_buffer(
+		u8 *pixel_buffer,
+		u16 buffer_width, 
+		u16 buffer_height) 
+{
+	u32 pixel;
+	for(pixel = 0; pixel < (buffer_width * buffer_height); pixel++) 
+	{
+		pixel_buffer[4*pixel] = 0;
+		pixel_buffer[4*pixel+1] = 0;
+		pixel_buffer[4*pixel+2] = 0;
+		pixel_buffer[4*pixel+3] = 0;
+
+	}
+}
+
+void draw_fill_rectangle_in_buffer(
+		u8 *pixel_buffer, 
+		u32 x, u32 y, 
+		u32 w, u32 h,
+		u16 buffer_width, u16 buffer_height) 
+{
+	u32 col;
+	u32 row;
+	i32 pixel;
+	for(row = 0; row < h; row++) 
+	{
+		for(col = 0; col < w; col++) 
+		{
+			pixel = (y * buffer_width + x) + 
+					(row * buffer_width + col);	
+			if(pixel >= 0 && pixel < buffer_width * buffer_height)
+			{
+				pixel_buffer[4*pixel] = 255; 
+				pixel_buffer[4*pixel+1] = 255; 
+				pixel_buffer[4*pixel+2] = 255; 
+				pixel_buffer[4*pixel+3] = 0; 
+			}
+		}
+	}
+}
+
+void draw_nofill_rectangle_in_buffer(
+		u8 *pixel_buffer, 
+		u32 x, u32 y, 
+		u32 w, u32 h,
+		u16 buffer_width, u16 buffer_height) 
+{
+	u32 col;
+	u32 row;
+	i32 pixel;
+
+	/* top */
+	for(col = 0; col < w; col++)
+	{
+		pixel = (y * buffer_width + x) + col;
+
+		if(pixel >= 0 && pixel < buffer_width * buffer_height) {
+			pixel_buffer[4*pixel] = 0; 
+			pixel_buffer[4*pixel+1] = 0; 
+			pixel_buffer[4*pixel+2] = 255; 
+			pixel_buffer[4*pixel+3] = 0; 
+		}
+	}
+
+	/* bottom */
+	for(col = 0; col < w; col++)
+	{
+		pixel = ((y+h) * buffer_width + x) + col;
+
+		if(pixel >= 0 && pixel < buffer_width * buffer_height) {
+			pixel_buffer[4*pixel] = 0; 
+			pixel_buffer[4*pixel+1] = 0; 
+			pixel_buffer[4*pixel+2] = 255; 
+			pixel_buffer[4*pixel+3] = 0; 
+		}
+	}
+
+	/* left */
+	for(row = 0; row < h; row++)
+	{
+		pixel = (y * buffer_width + x) + (row * buffer_width);
+
+		if(pixel >= 0 && pixel < buffer_width * buffer_height) {
+			pixel_buffer[4*pixel] = 0; 
+			pixel_buffer[4*pixel+1] = 0; 
+			pixel_buffer[4*pixel+2] = 255; 
+			pixel_buffer[4*pixel+3] = 0; 
+		}
+	}
+
+	/* right */
+	for(row = 0; row < h; row++)
+	{
+		pixel = (y * buffer_width + x) + (row * buffer_width) + w - 1;
+
+		if(pixel >= 0 && pixel < buffer_width * buffer_height) {
+			pixel_buffer[4*pixel] = 0; 
+			pixel_buffer[4*pixel+1] = 0; 
+			pixel_buffer[4*pixel+2] = 255; 
+			pixel_buffer[4*pixel+3] = 0; 
+		}
+	}
+}
+
+/* TODO: how to draw circle into a pixel buffer? 
+ * void draw_circle_in_buffer(...)
+ */
+
+b8 check_collision_aabb(rectangle first, rectangle second)
+{
+	return false;
+}
+
