@@ -788,7 +788,7 @@ https://lists.freedesktop.org/pipermail/xcb/2010-December/006714.html
 		- this required doing the game_update_and_render, xcb_put_image,
 		and xcb_copy_area functions every "frame"
 
-		TODO: currently building pong. lots to do here and lots to
+		currently building pong. lots to do here and lots to
 		research esp wrt collision, velocity, etc. i.e. basic
 		2D physics stuff (also how tf to draw a circle). also framerate
 		for consistent physics? or have it be based on a delta t so that
@@ -829,6 +829,10 @@ https://lists.freedesktop.org/pipermail/xcb/2010-December/006714.html
 		like full rewrite since I'm not out here to make pong. 
 		I just want a jank, working version of pong so I can move 
 		on to more interesting things and note what I learned.
+
+		NOTE: working on rendering functions.
+		line drawing is working! was interestingly more complicated
+		than expected. Now I can build shapes using line! <-TODO
 
 		TODO: forcing framerate?
 		TODO: more physics stuff

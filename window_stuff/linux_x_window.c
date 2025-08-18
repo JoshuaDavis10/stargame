@@ -296,9 +296,6 @@ int main(int argc, char **argv)
 				} break;
 				case XCB_EXPOSE: 
 				{
-					/* TODO: we may need to do this every loop
-					 * if this isn't working the way we want
-					 */
 					game_update_and_render(
 							x_pixmap_data, 
 							x_global_window_width,

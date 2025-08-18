@@ -2,33 +2,72 @@
 
 #define GAME_SPEED 1 
 
-/* TODO: temp for input testing */
-static i32 x_global_render_offset_x = 0;
-static i32 x_global_render_offset_y = 0;
-
-/* TODO: temp for pong */
 typedef struct {
-	u32 positions[2];	
-	i32 ball_position[2];
-	i32 ball_direction[2];
-} game_state;
+	i32 x;
+	i32 y;
+	i32 w;
+	i32 h;
+} aabb;
 
 typedef struct {
 	i32 x;
 	i32 y;
-	u32 w;
-	u32 h;
-} rectangle;
+} i32_point;
 
-static game_state game_global_state = {0};
-static b8 game_global_initialized = 0;
+typedef struct {
+	u8 r;
+	u8 g;
+	u8 b;
+	u8 a;
+} rgba_color;
 
-b8 check_collision_aabb(rectangle first, rectangle second);
+/* NOTE: this goin' be useful for a looong time so keeping it */
+b8 check_collision_aabb(aabb first, aabb second);
+
+/* TODO: add rendering functions:
+ * - pass colors as parameters
+ * - current goals is to be able to draw all the pattern block stuff
+ *   you had as a kid:
+ *		- hexagon
+ *		- triangle
+ *		- parallelogram (?)
+ *		- skinny parallelogram (?)
+ *		- square
+ *		- trapezoid
+ *		- that's all I can remember, but I guess there were the big
+ *		rectangle guys, but I can already draw rectangles
+ *		- NOTE: since this is currently just all rendering into a
+ *		pixel buffer by manually setting pixels, I don't think rotations
+ *		are possible. So I'll have a set rotation for each (like facing
+ *		"up" I guess)
+ *		- NOTE: having a draw_line and like a draw_area (that takes points
+ *		as parameters?) would be SUPER helpful for this rather
+ *		than like doing manual pixels for each
+ *		- NOTE: chance to have some anti-aliasing or is that
+ *		wayy to complicated for me right now?
+ */
+
+void draw_line_in_buffer_coords(
+		u8 *pixel_buffer,
+		u16 buffer_width,
+		u16 buffer_height,
+		i32 x1, i32 y1,
+		i32 x2, i32 y2,
+		rgba_color color);
+
+void draw_line_in_buffer_points(
+		u8 *pixel_buffer,
+		u16 buffer_width,
+		u16 buffer_height,
+		i32_point p1,
+		i32_point p2,
+		rgba_color color);
 
 void draw_background_in_buffer(
 		u8 *pixel_buffer,
 		u16 buffer_width, 
-		u16 buffer_height); 
+		u16 buffer_height,
+		rgba_color color); 
 
 void draw_fill_rectangle_in_buffer(
 		u8 *pixel_buffer, 
@@ -51,294 +90,141 @@ void game_update_and_render(
 									push massive input struct onto stack
 									*/
 {
-	if(!game_global_initialized)
-	{
-		game_global_state.positions[0] = pixel_buffer_height/2;
-		game_global_state.positions[1] = pixel_buffer_height/2;
-		game_global_state.ball_position[0] = pixel_buffer_width/2;
-		game_global_state.ball_position[1] = pixel_buffer_height/2;
-		game_global_state.ball_direction[0] = GAME_SPEED;
-		game_global_state.ball_direction[1] = GAME_SPEED;
-		game_global_initialized = true;
-	}
+	rgba_color bg_color = {0, 0, 0, 0};
+	rgba_color line_color = {0, 255, 0, 0};
 
-	game_global_state.ball_position[0]+=
-		game_global_state.ball_direction[0];
-	game_global_state.ball_position[1]+=
-		game_global_state.ball_direction[1];
-
-	/* NOTE: collision detection */
-	rectangle left_paddle;
-	rectangle right_paddle;
-	rectangle ball;
-	left_paddle.x = 100;
-	left_paddle.y = game_global_state.positions[0] - 100;
-	left_paddle.w = 50;
-	left_paddle.h = 200;
-	right_paddle.x = pixel_buffer_width - 100;
-	right_paddle.y = game_global_state.positions[1] - 100;
-	right_paddle.w = 50;
-	right_paddle.h = 200;
-	ball.x = game_global_state.ball_position[0];
-	ball.y = game_global_state.ball_position[1];
-	ball.w = 50;
-	ball.h = 50;
-	i32 ydist;
-	i32 xdist;
-	if(check_collision_aabb(left_paddle, ball))
-	{
-		if(left_paddle.y > ball.y) 
-		{
-			xdist = left_paddle.x - ball.x;
-			if(xdist < 0) { xdist = -xdist; }
-			ydist = left_paddle.y - ball.y;
-			if(ydist < 0) { ydist = -ydist; }
-			if(xdist > ydist) 
-			{
-				game_global_state.ball_direction[0] =
-					-game_global_state.ball_direction[0]; 
-			}
-			else {
-				game_global_state.ball_direction[1] =
-					-GAME_SPEED; 
-			}
-		}
-		else if((left_paddle.y + left_paddle.h) < (ball.y + ball.h))
-		{
-			xdist = left_paddle.x - ball.x;
-			if(xdist < 0) { xdist = -xdist; }
-			ydist = (left_paddle.y + left_paddle.h) - 
-				(ball.y + ball.h);
-			if(ydist < 0) { ydist = -ydist; }
-			if(xdist > ydist) 
-			{
-				game_global_state.ball_direction[0] =
-					-game_global_state.ball_direction[0]; 
-			}
-			else {
-				game_global_state.ball_direction[1] =
-					GAME_SPEED; 
-			}
-		}
-		else
-		{
-			game_global_state.ball_direction[0] =
-				-game_global_state.ball_direction[0]; 
-		}
-	}
-	if(check_collision_aabb(right_paddle, ball))
-	{
-		/* ball is above paddle */
-		if(right_paddle.y > ball.y) 
-		{
-			xdist = right_paddle.x - ball.x;
-			if(xdist < 0) { xdist = -xdist; }
-			ydist = right_paddle.y - ball.y;
-			if(ydist < 0) { ydist = -ydist; }
-			if(xdist > ydist) 
-			{
-				game_global_state.ball_direction[0] =
-					-game_global_state.ball_direction[0]; 
-			}
-			else
-			{
-				game_global_state.ball_direction[1] =
-					-GAME_SPEED; 
-			}
-		}
-		/* ball is below paddle */
-		else if((right_paddle.y + right_paddle.h) < (ball.y + ball.h))
-		{
-			xdist = right_paddle.x - ball.x;
-			if(xdist < 0) { xdist = -xdist; }
-			ydist = (right_paddle.y + right_paddle.h) - 
-				(ball.y + ball.h);
-			if(ydist < 0) { ydist = -ydist; }
-			if(xdist > ydist) 
-			{
-				game_global_state.ball_direction[0] =
-					-game_global_state.ball_direction[0]; 
-			}
-			else {
-				game_global_state.ball_direction[1] =
-					GAME_SPEED; 
-			}
-		}
-		else
-		{
-			game_global_state.ball_direction[0] =
-				-game_global_state.ball_direction[0]; 
-		}
-	}
-
-	if((game_global_state.ball_position[1] + 50) >= 
-			pixel_buffer_height)
-	{
-		game_global_state.ball_direction[1] =
-			-game_global_state.ball_direction[1]; 
-	}
-	if((game_global_state.ball_position[1]) <= 
-			0)
-	{
-		game_global_state.ball_direction[1] =
-			-game_global_state.ball_direction[1]; 
-	}
-	if((game_global_state.ball_position[0]) >= 
-			pixel_buffer_width - 50)
-	{
-		game_global_state.ball_position[0] = pixel_buffer_width/2; 
-		game_global_state.ball_position[1] = pixel_buffer_height/2; 
-	}
-	if((game_global_state.ball_position[0]) <= 
-			0)
-	{
-		game_global_state.ball_position[0] = pixel_buffer_width/2; 
-		game_global_state.ball_position[1] = pixel_buffer_height/2; 
-	}
-
-	if(input->letters[22]) 
-	{
-		if(!check_collision_aabb(left_paddle, ball))
-		{
-			if(game_global_state.positions[0] > 100)
-			{
-				game_global_state.positions[0]-=GAME_SPEED;
-			}
-		}
-	}
-	else if(input->letters[18])
-	{
-		if(!check_collision_aabb(left_paddle, ball))
-		{
-			if(game_global_state.positions[0] < 400)
-			{
-				game_global_state.positions[0]+=GAME_SPEED;
-			}
-		}
-	}
-
-	if(input->letters[8]) 
-	{
-		if(!check_collision_aabb(right_paddle, ball))
-		{
-			if(game_global_state.positions[1] > 100)
-			{
-				game_global_state.positions[1]-=GAME_SPEED;
-			}
-		}
-	}
-	else if(input->letters[10])
-	{
-		if(!check_collision_aabb(right_paddle, ball))
-		{
-			if(game_global_state.positions[1] < 400)
-			{
-				game_global_state.positions[1]+=GAME_SPEED;
-			}
-		}
-	}
-
-	/*
-	if(input->letters[22]) 
-	{
-		x_global_render_offset_y++;
-	}
-	if(input->letters[18]) {
-		x_global_render_offset_y--;
-	}
-	if(input->letters[0])
-	{
-		x_global_render_offset_x--;
-	}
-	if(input->letters[3])
-	{
-		x_global_render_offset_x++;
-	}
-	u32 pixel;
-	u32 row;
-	u32 col;
-	for(pixel = 0; 
-			pixel < (pixel_buffer_width * pixel_buffer_height);
-			pixel++) 
-	{
-				row = pixel / pixel_buffer_width;
-				col = pixel % pixel_buffer_width;
-				pixel_buffer[4*pixel] = row - x_global_render_offset_y;
-				pixel_buffer[4*pixel+1] = row - x_global_render_offset_y;
-				pixel_buffer[4*pixel+2] = col + x_global_render_offset_x;
-				pixel_buffer[4*pixel+3] = 0;
-	}
-	*/
-
+	/* NOTE: game code here */
 	draw_background_in_buffer(
 		pixel_buffer,
 		pixel_buffer_width, 
-		pixel_buffer_height);
+		pixel_buffer_height,
+		bg_color); 
 
-	/* TODO: scuffed hardcoded paddles */
-	draw_fill_rectangle_in_buffer(
-			pixel_buffer,
-			100, 
-			game_global_state.positions[0] - 100, 
-			50, 200,
-			pixel_buffer_width,
-			pixel_buffer_height);
-	draw_nofill_rectangle_in_buffer(
-			pixel_buffer,
-			100, 
-			game_global_state.positions[0] - 100, 
-			50, 200,
-			pixel_buffer_width,
-			pixel_buffer_height);
+	draw_line_in_buffer_coords(
+		pixel_buffer,
+		pixel_buffer_width,
+		pixel_buffer_height,
+		0, 0,
+		200, 100,
+		line_color);
 
-	draw_fill_rectangle_in_buffer(
-			pixel_buffer,
-			pixel_buffer_width - 100, 
-			game_global_state.positions[1] - 100, 
-			50, 200,
-			pixel_buffer_width,
-			pixel_buffer_height);
+	draw_line_in_buffer_coords(
+		pixel_buffer,
+		pixel_buffer_width,
+		pixel_buffer_height,
+		500, 0,
+		600, 200,
+		line_color);
 
-	draw_nofill_rectangle_in_buffer(
-			pixel_buffer,
-			pixel_buffer_width - 100, 
-			game_global_state.positions[1] - 100, 
-			50, 200,
-			pixel_buffer_width,
-			pixel_buffer_height);
+	draw_line_in_buffer_coords(
+		pixel_buffer,
+		pixel_buffer_width,
+		pixel_buffer_height,
+		0, 250,
+		200, 350,
+		line_color);
 
-
-	draw_fill_rectangle_in_buffer(
-			pixel_buffer,
-			game_global_state.ball_position[0], 
-			game_global_state.ball_position[1], 
-			50, 50,
-			pixel_buffer_width,
-			pixel_buffer_height);
-
-	draw_nofill_rectangle_in_buffer(
-			pixel_buffer,
-			game_global_state.ball_position[0], 
-			game_global_state.ball_position[1], 
-			50, 50,
-			pixel_buffer_width,
-			pixel_buffer_height);
+	draw_line_in_buffer_coords(
+		pixel_buffer,
+		pixel_buffer_width,
+		pixel_buffer_height,
+		500, 250,
+		600, 450,
+		line_color);
 }
 
-/* TODO: parameter to choose color */
 void draw_background_in_buffer(
 		u8 *pixel_buffer,
 		u16 buffer_width, 
-		u16 buffer_height) 
+		u16 buffer_height,
+		rgba_color color) 
 {
 	u32 pixel;
 	for(pixel = 0; pixel < (buffer_width * buffer_height); pixel++) 
 	{
-		pixel_buffer[4*pixel] = 100;
-		pixel_buffer[4*pixel+1] = 100;
-		pixel_buffer[4*pixel+2] = 0;
-		pixel_buffer[4*pixel+3] = 0;
+		pixel_buffer[4*pixel] = color.b;
+		pixel_buffer[4*pixel+1] = color.g;
+		pixel_buffer[4*pixel+2] = color.r;
+		pixel_buffer[4*pixel+3] = color.a;
 
+	}
+}
+
+void draw_line_in_buffer_coords(
+		u8 *pixel_buffer,
+		u16 buffer_width,
+		u16 buffer_height,
+		i32 x1, i32 y1,
+		i32 x2, i32 y2,
+		rgba_color color)
+{
+	i8 xdir = 1;
+	i8 ydir = 1;
+
+	i32 xdist = x2 - x1;
+	i32 ydist = y2 - y1;
+
+	if( xdist < 0 ) 
+	{
+		xdir = -1;
+		xdist = -xdist;
+	}
+	if( ydist < 0 ) 
+	{
+		ydir = -1;
+		ydist = -ydist;
+	}
+
+	b8 slope_less_than_one = false;
+	if(xdist > ydist) { slope_less_than_one = true; }
+
+	i32 slope;
+	if(!slope_less_than_one)
+	{
+		slope = ydist/xdist;
+	}
+	else
+	{
+		slope = xdist/ydist;
+	}
+	if(slope < 0) { slope = -slope; }
+
+	i32 x = x1;
+	i32 y = y1;
+
+	u32 pixel;
+	while(x != x2 && y != y2)
+	{
+		i32 counter;
+		for(counter = 0; counter < slope; counter++)
+		{
+			pixel = x + y * buffer_width;
+
+			if(pixel >= 0 && pixel < buffer_width * buffer_height)
+			{
+				pixel_buffer[4*pixel] = color.b; 
+				pixel_buffer[4*pixel+1] = color.g; 
+				pixel_buffer[4*pixel+2] = color.r; 
+				pixel_buffer[4*pixel+3] = color.a; 
+			}
+
+			if(!slope_less_than_one)
+			{
+				y+=ydir;
+			}
+			else
+			{
+				x+=xdir;
+			}
+		}
+		if(!slope_less_than_one)
+		{
+			x+=xdir;
+		}
+		else
+		{
+			y+=ydir;
+		}
 	}
 }
 
@@ -431,11 +317,7 @@ void draw_nofill_rectangle_in_buffer(
 	}
 }
 
-/* TODO: how to draw circle into a pixel buffer? 
- * void draw_circle_in_buffer(...)
- */
-
-b8 check_collision_aabb(rectangle first, rectangle second)
+b8 check_collision_aabb(aabb first, aabb second)
 {
 	/* if first is not to the left, to the right, above, or below second,
 	 * then collison

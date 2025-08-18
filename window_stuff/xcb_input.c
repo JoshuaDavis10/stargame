@@ -91,10 +91,6 @@ typedef struct {
 	u8 x_min_key_code;
 } x_keymap_info;
 
-/* TODO: process "input state" based on a keysym 
- * void x_update_input_state(xcb_keysym_t x_keysym) 
- */
-
 /*
  * @brief translates keycode into a keysym
  * @param x_keycode: keycode to be translated
