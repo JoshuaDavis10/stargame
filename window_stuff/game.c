@@ -55,12 +55,21 @@ void draw_line_in_buffer_coords(
 		i32 x2, i32 y2,
 		rgba_color color);
 
-void draw_line_in_buffer_points(
+void draw_nofill_rectangle_with_lines_in_buffer(
 		u8 *pixel_buffer,
+		u16 buffer_width, 
+		u16 buffer_height,
+		u16 x, u16 y,
+		u16 w, u16 h,
+		rgba_color color);
+
+void draw_nofill_triangle_in_buffer(
+		u8 *pixel_buffer, 
 		u16 buffer_width,
 		u16 buffer_height,
-		i32_point p1,
-		i32_point p2,
+		u32 x1, u32 y1, 
+		u32 x2, u32 y2, 
+		u32 x3, u32 y3,
 		rgba_color color);
 
 void draw_background_in_buffer(
@@ -81,6 +90,7 @@ void draw_nofill_rectangle_in_buffer(
 		u32 w, u32 h,
 		u16 buffer_width, u16 buffer_height);
 
+
 /* NOTE: runs every frame */
 void game_update_and_render(
 		u8 *pixel_buffer, 
@@ -92,6 +102,8 @@ void game_update_and_render(
 {
 	rgba_color bg_color = {0, 0, 0, 0};
 	rgba_color line_color = {0, 255, 0, 0};
+	rgba_color square_color = {255, 0, 0, 0};
+	rgba_color triangle_color = {0, 0, 255, 0};
 
 	/* NOTE: game code here */
 	draw_background_in_buffer(
@@ -100,37 +112,22 @@ void game_update_and_render(
 		pixel_buffer_height,
 		bg_color); 
 
-	draw_line_in_buffer_coords(
+	draw_nofill_rectangle_with_lines_in_buffer(
 		pixel_buffer,
 		pixel_buffer_width,
 		pixel_buffer_height,
-		0, 0,
-		200, 100,
-		line_color);
+		250, 250,
+		100, 100,
+		square_color);
 
-	draw_line_in_buffer_coords(
+	draw_nofill_triangle_in_buffer(
 		pixel_buffer,
 		pixel_buffer_width,
 		pixel_buffer_height,
-		500, 0,
-		600, 200,
-		line_color);
-
-	draw_line_in_buffer_coords(
-		pixel_buffer,
-		pixel_buffer_width,
-		pixel_buffer_height,
-		0, 250,
-		200, 350,
-		line_color);
-
-	draw_line_in_buffer_coords(
-		pixel_buffer,
-		pixel_buffer_width,
-		pixel_buffer_height,
-		500, 250,
-		600, 450,
-		line_color);
+		600, 100,
+		550, 186,
+		650, 186,
+		triangle_color);
 }
 
 void draw_background_in_buffer(
@@ -158,47 +155,57 @@ void draw_line_in_buffer_coords(
 		i32 x2, i32 y2,
 		rgba_color color)
 {
-	i8 xdir = 1;
-	i8 ydir = 1;
-
 	i32 xdist = x2 - x1;
 	i32 ydist = y2 - y1;
 
-	if( xdist < 0 ) 
+	i8 xdir;
+	i8 ydir;
+
+	i32 xdist_abs;
+	i32 ydist_abs;
+
+	b8 xdist_greater = false;
+
+	if(xdist < 0)
 	{
+		xdist_abs = -xdist;
 		xdir = -1;
-		xdist = -xdist;
-	}
-	if( ydist < 0 ) 
-	{
-		ydir = -1;
-		ydist = -ydist;
-	}
-
-	b8 slope_less_than_one = false;
-	if(xdist > ydist) { slope_less_than_one = true; }
-
-	i32 slope;
-	if(!slope_less_than_one)
-	{
-		slope = ydist/xdist;
 	}
 	else
 	{
-		slope = xdist/ydist;
+		xdist_abs = xdist;
+		xdir = 1;
 	}
-	if(slope < 0) { slope = -slope; }
-
-	i32 x = x1;
-	i32 y = y1;
-
-	u32 pixel;
-	while(x != x2 && y != y2)
+	if(ydist < 0)
 	{
-		i32 counter;
-		for(counter = 0; counter < slope; counter++)
+		ydist_abs = -ydist;
+		ydir = -1;
+	}
+	else
+	{
+		ydist_abs = ydist;
+		ydir = 1;
+	}
+
+
+	if(xdist_abs > ydist_abs)
+	{
+		xdist_greater = true;
+	}
+
+	f32 increment;
+	if(xdist_greater)
+	{
+		increment = (f32)ydist_abs/(f32)xdist_abs;
+		i32 pixel_x = x1;
+		i32 pixel_y;
+		f32 y = (f32)y1;
+
+		u32 pixel;
+		do
 		{
-			pixel = x + y * buffer_width;
+			pixel_y = (i32)y;
+			pixel = pixel_x + pixel_y * buffer_width;
 
 			if(pixel >= 0 && pixel < buffer_width * buffer_height)
 			{
@@ -207,25 +214,126 @@ void draw_line_in_buffer_coords(
 				pixel_buffer[4*pixel+2] = color.r; 
 				pixel_buffer[4*pixel+3] = color.a; 
 			}
+			
+			pixel_x += xdir;
+			y += ydir * increment;
+		}
+		while(pixel_x != x2);
 
-			if(!slope_less_than_one)
-			{
-				y+=ydir;
-			}
-			else
-			{
-				x+=xdir;
-			}
-		}
-		if(!slope_less_than_one)
-		{
-			x+=xdir;
-		}
-		else
-		{
-			y+=ydir;
-		}
+		return;
 	}
+	else
+	{
+		increment = (f32)xdist_abs/(f32)ydist_abs;
+		i32 pixel_y = y1;
+		i32 pixel_x;
+		f32 x = (f32)x1;
+
+		u32 pixel;
+		do
+		{
+			pixel_x = (i32)x;
+			pixel = pixel_x + pixel_y * buffer_width;
+
+			if(pixel >= 0 && pixel < buffer_width * buffer_height)
+			{
+				pixel_buffer[4*pixel] = color.b; 
+				pixel_buffer[4*pixel+1] = color.g; 
+				pixel_buffer[4*pixel+2] = color.r; 
+				pixel_buffer[4*pixel+3] = color.a; 
+			}
+			
+			pixel_y += ydir;
+			x += xdir * increment;
+		}
+		while(pixel_y != y2);
+
+		return;
+	}
+}
+
+void draw_nofill_rectangle_with_lines_in_buffer(
+		u8 *pixel_buffer,
+		u16 buffer_width,
+		u16 buffer_height,
+		u16 x, u16 y,
+		u16 w, u16 h,
+		rgba_color color)
+{
+	i32 x1 = x;
+	i32 y1 = y;
+	i32 x2 = x + w;
+	i32 y2 = y;
+	i32 x3 = x;
+	i32 y3 = y + h;
+	i32 x4 = x + w;
+	i32 y4 = y + h;
+	
+	draw_line_in_buffer_coords(
+		pixel_buffer,
+		buffer_width,
+		buffer_height,
+		x1, y1,
+		x2, y2,
+		color);
+
+	draw_line_in_buffer_coords(
+		pixel_buffer,
+		buffer_width,
+		buffer_height,
+		x1, y1,
+		x3, y3,
+		color);
+
+	draw_line_in_buffer_coords(
+		pixel_buffer,
+		buffer_width,
+		buffer_height,
+		x2, y2,
+		x4, y4,
+		color);
+
+	draw_line_in_buffer_coords(
+		pixel_buffer,
+		buffer_width,
+		buffer_height,
+		x3, y3,
+		x4, y4,
+		color);
+}
+
+void draw_nofill_triangle_in_buffer(
+		u8 *pixel_buffer, 
+		u16 buffer_width,
+		u16 buffer_height,
+		u32 x1, u32 y1, 
+		u32 x2, u32 y2, 
+		u32 x3, u32 y3, 
+		rgba_color color)
+{
+	draw_line_in_buffer_coords(
+		pixel_buffer,
+		buffer_width,
+		buffer_height,
+		x1, y1,
+		x2, y2,
+		color);
+
+	draw_line_in_buffer_coords(
+		pixel_buffer,
+		buffer_width,
+		buffer_height,
+		x2, y2,
+		x3, y3,
+		color);
+
+	draw_line_in_buffer_coords(
+		pixel_buffer,
+		buffer_width,
+		buffer_height,
+		x1, y1,
+		x3, y3,
+		color);
 }
 
 void draw_fill_rectangle_in_buffer(

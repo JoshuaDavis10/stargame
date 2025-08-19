@@ -834,6 +834,26 @@ https://lists.freedesktop.org/pipermail/xcb/2010-December/006714.html
 		line drawing is working! was interestingly more complicated
 		than expected. Now I can build shapes using line! <-TODO
 
+		NOTE: kinda interesting. hit a division by 0 error (which
+		asan catches apparently) in the line code. i.e. what happens
+		if xdist or ydist is 0 (straight line)
+			fixed that tho!
+
+		NOTE: issue in drawing triangle
+			I think that since the slopes are integers, we're losing
+			some info... (obviously).
+			so we need some "algorithm" or method for determining
+			whether to change x or y for next pixel or even both.
+			THIS IS IMPORTANT. Working out the kinks of the line
+			drawing function is key rn
+			- have a float value that rounds down to the pixel
+			i.e. float += 1/slope
+			x = (int)float;
+			idk if that makes any friggin sense
+
+			ANYWAYS, FIXED!
+			line drawing function looking gooood
+
 		TODO: forcing framerate?
 		TODO: more physics stuff
 		TODO: sound?
