@@ -27,8 +27,8 @@ typedef double f64;
 #include "xcb_input.c" /* NOTE: my xcb input utils file */
 
 static x_keymap_info x_global_keymap_info = {0};
-static u16 x_global_window_width = 1000;
-static u16 x_global_window_height = 500;
+static u16 x_global_window_width;
+static u16 x_global_window_height;
 static game_input_state x_global_input_state = {0};
 
 int main(int argc, char **argv) 
@@ -79,6 +79,9 @@ int main(int argc, char **argv)
 	printf ("  white pixel...: %d\n", x_screen->white_pixel);
 	printf ("  black pixel...: %d\n", x_screen->black_pixel);
 	printf ("\n");
+
+	x_global_window_width = x_screen->width_in_pixels;
+	x_global_window_height = x_screen->height_in_pixels;
 
 	/*generate id to be passed to xcb_create_window*/
 	xcb_window_t x_window_id = xcb_generate_id(x_connection);
@@ -181,8 +184,6 @@ int main(int argc, char **argv)
 			32, 1,
 			&x_atom_wm_delete_window);
 
-	/* set to full screen */
-	/*
 	xcb_intern_atom_cookie_t x_internal_atom_wm_state =
 		xcb_intern_atom(x_connection, 1, 13, "_NET_WM_STATE");
 	xcb_intern_atom_reply_t *x_wm_state_reply =
@@ -225,7 +226,6 @@ int main(int argc, char **argv)
 			XCB_ATOM_ATOM,
 			32, 1,
 			&x_atom_wm_fullscreen);
-	*/
 
 	/* load key symbols */
 	x_load_key_symbols(&x_global_keymap_info, x_connection, x_setup);

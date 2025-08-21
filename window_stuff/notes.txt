@@ -813,17 +813,17 @@ https://lists.freedesktop.org/pipermail/xcb/2010-December/006714.html
 		so that issue might just go away if you have logic
 		to end the game once the ball passes a certain point
 
-		- TODO: might want to switch to a world coordinate system (i.e.
+		- might want to switch to a world coordinate system (i.e.
 		floats that then map to pixel buffer through some coordinate
 		conversion) before doing more complex things
-		- TODO: ^ in that same vein, get a "framerate" 
+		- ^ in that same vein, get a "framerate" 
 		OR delta T based physics thing running so you don't have to 
 		worry about framerate
 		- after that, I'll have to figure out how to draw a circle
 		and how to do circle on square collision or whatever
 		(can have an initial check with AABB tho or smn)
 
-		TODO: ^ if any useful code comes out of all of that, could
+		^ if any useful code comes out of all of that, could
 		be good to reuse. (MOST LIKELY JUST THE RENDERING FUNCTIONS
 		WILL BE USEFUL + WORLD COORDINATE SYSTEM) I want to avoid a 
 		like full rewrite since I'm not out here to make pong. 
@@ -832,7 +832,7 @@ https://lists.freedesktop.org/pipermail/xcb/2010-December/006714.html
 
 		NOTE: working on rendering functions.
 		line drawing is working! was interestingly more complicated
-		than expected. Now I can build shapes using line! <-TODO
+		than expected. Now I can build shapes using line! 
 
 		NOTE: kinda interesting. hit a division by 0 error (which
 		asan catches apparently) in the line code. i.e. what happens
@@ -854,8 +854,54 @@ https://lists.freedesktop.org/pipermail/xcb/2010-December/006714.html
 			ANYWAYS, FIXED!
 			line drawing function looking gooood
 
+		NOTE: ignore this, just look at shape_war.txt 
+		- for game ( see CURRENT GOAL below ), need:
+			[x] rendering functions for various shapes,
+			- some game design
+			[x] does each unit type just have a function pointer for
+			their drawing function or smn
+			- be able to draw progress/health bars
+
+		NOTE: put rendering functions in cpu_render.c
+
+		CURRENT GOAL:
+		- build a game!
+			- this game will just be shapes
+			- I have a pretty vague idea, but probably an auto-battler
+			or EXTREMELY simple RTS
+			- buildings: main building, resource harvester, "barracks"
+			- no tech really
+			- like 2 or 3 unit types
+				- simple melee soldier
+				- ranged soldier
+				- tanky soldier?
+			- really small map, no fog of war
+			- graphics wise, all u need really is drawing shapes +
+			progress/health bars
+			- I'm thinking low unit count, low resources, maybe even
+			only single-unit selection, very small scale
+			- systems wise:
+				- projectile physics
+					- collision detection
+					- vectors/velocity
+				- "vision"
+					- units need to be able to "detect" enemy units
+				- unit collision?
+					- units shouldn't be able to stack on top of
+					each other - magic box?
+					- crap this is complicated
+					- pathfinding? tilemap?
+					- maybe units can stand on each other? that makes
+					things simpler?
+					- I'm trying to avoid insane scope, but we do want
+					to have to build a few systems at least. This is a
+					good sort of preview game for our ultimate goal of
+					building an actual software rendered RTS
+
+			GONNA PUT GAME DESIGN STUFF IN shape_war.txt
+
+		TODO: delta T based physics stuff (movement, projectiles)
 		TODO: forcing framerate?
-		TODO: more physics stuff
 		TODO: sound?
 
 11) text + fonts

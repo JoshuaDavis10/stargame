@@ -1,0 +1,64 @@
+"GAME DESIGN" DOC for Shape War!
+
+1 resource
+3 buildings
+- resource harvester (can be built anywhere)
+- main building (kill this to win)
+- barracks (produce troops)
+3 unit types
+- medium health melee unit - cheap, fast?
+- low health, high damage range unit - cheap-ish, slow?
+- high health melee unit, high damage - expensive, slow?
+
+SQUARE for big unit
+TRIANGLE for melee unit
+X for ranged unit
+DIAMOND for harvest building
+HEXAGON for main building
+CIRCLE for barracks (like 2x2 or smn)
+ 
+blue vs red <- color of shape is which team it's on (obviously)
+
+NOTE: ^ currently have functions to draw all of those
+
+next up:
+game state
+	- nexus
+		- health
+		- position
+	- *your_units
+		- health
+		- position
+	- *your_buildings
+		- health
+		- position
+		- progress (if applicable)
+	- your current "money"
+	- *enemy_units
+		- health
+		- position
+
+game loop:
+	- your units
+		- if no target, check for enemies to acquire target
+		- if target
+			- if in range, and attack not on cooldown
+			- else move toward target
+		- else	
+			- if target move position, move toward there
+			- else do nothing
+	- enemy units same thing
+	- your buildings
+		- update progress
+
+			this can be reordered ofc just getting the gist down
+
+so a nice "entity" struct
+{
+	i32 health;
+	i32 x, y; <- position
+	u32 progress; <- always 0 for anything other than barracks/harvester
+						WAIT maybe this is how u track attack cooldowns?
+}
+
+TODO: get all of the above done
