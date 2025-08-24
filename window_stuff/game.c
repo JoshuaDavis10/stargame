@@ -1,7 +1,9 @@
 #include "game.h"
 #include "cpu_render.c"
 
-/* TODO: buildings in here too probably */
+/* TODO: totally temp... nexuses won't move */
+#define NEXUS_MOVE_SPEED 0.1f
+
 typedef enum {
 	ENTITY_BIG,
 	ENTITY_MELEE,
@@ -19,6 +21,13 @@ typedef struct {
 	i32 h;
 } aabb;
 
+typedef struct {
+	f32 nexus_x;
+	f32 nexus_y;
+	f64 last_time;
+	f64 time_elapsed;
+} game_state;
+
 /* NOTE: this goin' be useful for a looong time so keeping it */
 b8 check_collision_aabb(aabb first, aabb second);
 
@@ -31,8 +40,16 @@ void draw_entity(
 		entity_type type, 
 		rgba_color color);
 
+
+static b8 game_initialized = false;
+static game_state *state = 0;
+static rgba_color blue = {0, 0, 255, 0};
+static rgba_color red = {255, 0, 0, 0};
+static rgba_color black = {0, 0, 0, 0};
 /* NOTE: runs every frame */
 void game_update_and_render(
+		void *game_memory,
+		u64 game_memory_size,
 		u8 *pixel_buffer, 
 		u16 pixel_buffer_width,
 		u16 pixel_buffer_height,
@@ -40,9 +57,25 @@ void game_update_and_render(
 									push massive input struct onto stack
 									*/
 {
-	rgba_color blue = {0, 0, 255, 0};
-	rgba_color red = {255, 0, 0, 0};
-	rgba_color black = {0, 0, 0, 0};
+	if(!game_initialized)
+	{
+		memset(game_memory, 0, game_memory_size);
+		state = (game_state*)game_memory;
+		state->nexus_x = 500.0f;
+		state->nexus_y = 300.0f;
+		game_initialized = true;
+		state->last_time = get_time_ms();
+	}
+
+	/* "physics" */
+	state->time_elapsed = get_time_ms() - state->last_time;	
+	if(state->nexus_x < pixel_buffer_width - 100)
+	{
+		/* NOTE: go ~10 pixels in a second */
+		state->nexus_x += (state->time_elapsed) * NEXUS_MOVE_SPEED; 
+	}
+
+	state->last_time = get_time_ms();
 
 	draw_background_in_buffer(
 		pixel_buffer,
@@ -66,7 +99,7 @@ void game_update_and_render(
 		500, 100, ENTITY_BARRACKS, blue);
 
 	draw_entity( pixel_buffer, pixel_buffer_width, pixel_buffer_height,
-		500, 300, ENTITY_NEXUS, blue);
+		(i32)state->nexus_x, (i32)state->nexus_y, ENTITY_NEXUS, blue);
 
 
 	draw_entity(pixel_buffer, pixel_buffer_width, pixel_buffer_height,

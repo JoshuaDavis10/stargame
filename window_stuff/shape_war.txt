@@ -61,4 +61,22 @@ so a nice "entity" struct
 						WAIT maybe this is how u track attack cooldowns?
 }
 
+TODO: memory management solution
+- I might just have the platform layer pass in a pointer to "game memory"
+to game_update_and_render. then I'd have separate platform memory for 
+like the framebuffer for example. This way the game can do whatever
+it wants with the memory, and the platform doesn't have to worry, which
+keeps the whole layer division pretty clean.
+- How do you feel about transient + also more permanent memory store?
+Both can use a bump allocator, but the transient stuff you could treat
+like a stack rather than using the stack. You could even have transient
+platform memory for like allocating strings in logging functions for
+example, etc. <- NOTE: maybe implement this in another game/some other
+time
+- then just first time through game_update_and_render, have a check
+for initialization, and initialize if not initialized. simple, honestly
+I like it.
+
+
+
 TODO: get all of the above done

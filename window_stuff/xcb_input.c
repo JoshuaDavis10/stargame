@@ -304,7 +304,7 @@ void x_register_key_stroke(
 			input->numbers[9] = pressed;
 		} break;
 		default: {
-			LOG_WARN("x_register_key_press: unidentified keysym %x", 
+			LOG_TRACE("x_register_key_press: unidentified keysym %x", 
 					keysym);
 		} break;
 	}
@@ -328,9 +328,6 @@ void x_load_key_symbols(
 	info->x_max_key_code = x_setup->max_keycode;
 	info->x_min_key_code = x_setup->min_keycode;
 
-	LOG_INFO("max keycode = %u", info->x_max_key_code);	
-	LOG_INFO("min keycode = %u", info->x_min_key_code);	
-
 	/* NOTE: initializing table. index is keycode. so this table
 	 * translates keycodes to keysymbols. that's why it is
 	 * length = max keycode instead of 
@@ -348,20 +345,6 @@ void x_load_key_symbols(
 	memset(info->x_key_symbols_table, 0,
 			sizeof(*(info->x_key_symbols_table)) * 
 				info->x_key_symbols_table_size);
-
-	LOG_INFO("initialized key symbol table");
-
-	/*
-	LOG_INFO("key codes: ");
-	uint16_t keycode_i;
-	for(keycode_i = x_min_key_code; 
-		keycode_i <= x_max_key_code; 
-		keycode_i++) 
-	{
-		printf("%d ", (uint8_t)keycode_i);
-	}
-	printf("\n");
-	*/
 
 	/* get keysyms and keysym count */
 	xcb_get_keyboard_mapping_cookie_t x_get_keyboard_mapping_cookie;
@@ -398,9 +381,6 @@ void x_load_key_symbols(
 		xcb_get_keyboard_mapping_keysyms_length(
 			x_get_keyboard_mapping_reply);
 
-	LOG_DEBUG("keysyms per keycode = %u", x_keysyms_per_keycode);	
-	LOG_DEBUG("keysym count = %d", x_keysyms_count);	
-
 	int keysym_i;
 	for(keysym_i = info->x_min_key_code; 
 		keysym_i <= info->x_max_key_code; 
@@ -416,16 +396,6 @@ void x_load_key_symbols(
 		info->x_key_symbols_table[keysym_i] = 
 			x_keysyms[x_keysyms_per_keycode * 
 			(keysym_i-info->x_min_key_code)];
-	}
-
-	LOG_DEBUG("key symbol table: n");
-	int keytable_i;
-	for(keytable_i = 0; 
-		keytable_i < info->x_key_symbols_table_size; 
-		keytable_i++) 
-	{
-		LOG_DEBUG("\tkeycode: %d | keysym: %x", 
-				keytable_i, info->x_key_symbols_table[keytable_i]);
 	}
 
 	free(x_get_keyboard_mapping_reply);

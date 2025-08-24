@@ -900,6 +900,75 @@ https://lists.freedesktop.org/pipermail/xcb/2010-December/006714.html
 
 			GONNA PUT GAME DESIGN STUFF IN shape_war.txt
 
+		Took a little break from game to do an attempt to do a "forced"
+		framerate <- using clock_gettime(CLOCK_MONOTONIC)
+		-> prepare frame (i.e. all the event stuff 
+		+ game_update_and_render, then sleep for remaining time, 
+		then copy pixel buffer over)
+		MAKE SURE TO MOVE IT OVER TO MAIN THING AFTER DOING
+		IT IN PONG
+
+		so a lot of the timing functions I was using are not
+		c89 standard (but might be gnu89 standard?). So I may try
+		rdtsc <- CLOCKS_PER_SEC is defined in time.h so, I think
+		between those 2 things u should be set. kohi code basically
+		does exactly what you were trying to do just now, but it's
+		not using c89 or whatever
+		only issue is replacing nanosleep...
+		but could do sleep for seconds and usleep for microseconds
+		(assuming it's ANSI C)
+
+		OKAY looks like rdtsc can only get you time in seconds if
+		you know the CPUs clock rate, and even then there's like
+		clock rate scaling so...
+
+		this whole using c89 thing is forcing me to learn a lot
+		so Ima keep doing it even tho its probably not a great idea
+		to skip out on GNU Linux functions while programming for
+		GNU Linux?
+
+		Looks like vsnprintf/usleep might not be quite c89 compliant,
+		but I think they'll work on this machine at least. I'm 
+		leaving the warnings up so its something I'm aware of
+
+		gettimeofday
+		sleep
+		usleep
+		^ should all be c89 compliant
+
+		so I've set it up to drop frames if they take too
+		long (I think), but game_update_and_render looks to be
+		taking about 25ms every time. I'm gonna profile some of 
+		the functions and see where we need to improve. I'm guessing
+		my software rendering functions are very inefficient.
+		FOUND THE PROBLEM... drawing backbuffer is taking 26ms on 
+		a good run - changed it to a memset, now it's like less than a 
+		millisecond for the whole game_update_and_render
+		NOTE: memset isn't gonna work for colors other than black/white/
+		gray
+
+		https://stackoverflow.com/questions/79401614/fastest-way-to-clear-an-rgba-image-to-a-single-color-in-c
+
+		it basically starts by copying in 1 pixel, then copying that
+		pixel into next slot, then those 2 pixels into next 2, then those
+		4 into next 4, etc... until we have more than half the pixels,
+		then we just copy remaining (FREAKING SICK!)
+
+		^ gonna use this for now for clearing bg. game_updat_and_render
+		is around 2ms now!
+
+		OKAY back to shape wars for a little while
+
+		NOTE: FLOOD FILL ALGORITHM? (for filling in shapes and clearing
+		background color
+
+		TODO: have option to log for a file. maybe have a separate
+		logging option for timing data so you can run a script to
+		analyze the file or smn (get averages, max, min, etc.)
+
+		All physics stuff in games from now on should really be 
+		delta T based
+
 		TODO: delta T based physics stuff (movement, projectiles)
 		TODO: forcing framerate?
 		TODO: sound?

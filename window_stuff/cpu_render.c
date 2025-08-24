@@ -7,20 +7,49 @@ typedef struct {
 
 /* TODO: create a .h file for all these as a quick reference */
 
+void draw_pixel_in_buffer_rgba(
+		u8 *pixel_buffer,
+		u16 buffer_width,
+		u16 buffer_height,
+		u32 pixel,
+		rgba_color color)
+{
+		if(pixel < buffer_width * buffer_height)
+		{
+			pixel_buffer[4*pixel] = color.b;
+			pixel_buffer[4*pixel+1] = color.g;
+			pixel_buffer[4*pixel+2] = color.r;
+			pixel_buffer[4*pixel+3] = color.a;
+		}
+}
+
 void draw_background_in_buffer(
 		u8 *pixel_buffer,
 		u16 buffer_width, 
 		u16 buffer_height,
 		rgba_color color) 
 {
-	u32 pixel;
-	for(pixel = 0; pixel < (buffer_width * buffer_height); pixel++) 
-	{
-		pixel_buffer[4*pixel] = color.b;
-		pixel_buffer[4*pixel+1] = color.g;
-		pixel_buffer[4*pixel+2] = color.r;
-		pixel_buffer[4*pixel+3] = color.a;
+	pixel_buffer[0] = color.b;
+	pixel_buffer[1] = color.g;
+	pixel_buffer[2] = color.r;
+	pixel_buffer[3] = color.a;
 
+	u64 bytes_in_buffer = buffer_width * buffer_height * 4;
+	u64 bytes_copied = 4;
+	u64 bytes_next_copy;
+
+	while(bytes_copied < bytes_in_buffer)
+	{
+		bytes_next_copy = bytes_copied << 1;
+
+		if(bytes_next_copy > bytes_in_buffer)
+		{
+			bytes_next_copy = bytes_in_buffer;
+		}
+
+		memcpy(pixel_buffer + bytes_copied, 
+				pixel_buffer, bytes_next_copy - bytes_copied); 	
+		bytes_copied = bytes_next_copy;
 	}
 }
 
@@ -84,13 +113,9 @@ void draw_line_in_buffer(
 			pixel_y = (i32)y;
 			pixel = pixel_x + pixel_y * buffer_width;
 
-			if(pixel >= 0 && pixel < buffer_width * buffer_height)
-			{
-				pixel_buffer[4*pixel] = color.b; 
-				pixel_buffer[4*pixel+1] = color.g; 
-				pixel_buffer[4*pixel+2] = color.r; 
-				pixel_buffer[4*pixel+3] = color.a; 
-			}
+			draw_pixel_in_buffer_rgba(
+					pixel_buffer, buffer_width, 
+					buffer_height, pixel, color); 
 			
 			pixel_x += xdir;
 			y += ydir * increment;
@@ -112,13 +137,9 @@ void draw_line_in_buffer(
 			pixel_x = (i32)x;
 			pixel = pixel_x + pixel_y * buffer_width;
 
-			if(pixel >= 0 && pixel < buffer_width * buffer_height)
-			{
-				pixel_buffer[4*pixel] = color.b; 
-				pixel_buffer[4*pixel+1] = color.g; 
-				pixel_buffer[4*pixel+2] = color.r; 
-				pixel_buffer[4*pixel+3] = color.a; 
-			}
+			draw_pixel_in_buffer_rgba(
+					pixel_buffer, buffer_width, 
+					buffer_height, pixel, color); 
 			
 			pixel_y += ydir;
 			x += xdir * increment;
@@ -179,13 +200,10 @@ void draw_fill_rectangle_in_buffer(
 		{
 			pixel = (y * buffer_width + x) + 
 					(row * buffer_width + col);	
-			if(pixel >= 0 && pixel < buffer_width * buffer_height)
-			{
-				pixel_buffer[4*pixel] = color.b; 
-				pixel_buffer[4*pixel+1] = color.g; 
-				pixel_buffer[4*pixel+2] = color.r; 
-				pixel_buffer[4*pixel+3] = color.a; 
-			}
+
+			draw_pixel_in_buffer_rgba(
+					pixel_buffer, buffer_width, 
+					buffer_height, pixel, color); 
 		}
 	}
 }
@@ -206,12 +224,9 @@ void draw_nofill_rectangle_in_buffer(
 	{
 		pixel = (y * buffer_width + x) + col;
 
-		if(pixel >= 0 && pixel < buffer_width * buffer_height) {
-			pixel_buffer[4*pixel] = color.b; 
-			pixel_buffer[4*pixel+1] = color.g; 
-			pixel_buffer[4*pixel+2] = color.r; 
-			pixel_buffer[4*pixel+3] = color.a; 
-		}
+		draw_pixel_in_buffer_rgba(
+				pixel_buffer, buffer_width, 
+				buffer_height, pixel, color); 
 	}
 
 	/* bottom */
@@ -219,12 +234,9 @@ void draw_nofill_rectangle_in_buffer(
 	{
 		pixel = ((y+h) * buffer_width + x) + col;
 
-		if(pixel >= 0 && pixel < buffer_width * buffer_height) {
-			pixel_buffer[4*pixel] = color.b; 
-			pixel_buffer[4*pixel+1] = color.g; 
-			pixel_buffer[4*pixel+2] = color.r; 
-			pixel_buffer[4*pixel+3] = color.a; 
-		}
+		draw_pixel_in_buffer_rgba(
+				pixel_buffer, buffer_width, 
+				buffer_height, pixel, color); 
 	}
 
 	/* left */
@@ -232,12 +244,9 @@ void draw_nofill_rectangle_in_buffer(
 	{
 		pixel = (y * buffer_width + x) + (row * buffer_width);
 
-		if(pixel >= 0 && pixel < buffer_width * buffer_height) {
-			pixel_buffer[4*pixel] = color.b; 
-			pixel_buffer[4*pixel+1] = color.g; 
-			pixel_buffer[4*pixel+2] = color.r; 
-			pixel_buffer[4*pixel+3] = color.a; 
-		}
+		draw_pixel_in_buffer_rgba(
+				pixel_buffer, buffer_width, 
+				buffer_height, pixel, color); 
 	}
 
 	/* right */
@@ -245,12 +254,9 @@ void draw_nofill_rectangle_in_buffer(
 	{
 		pixel = (y * buffer_width + x) + (row * buffer_width) + w - 1;
 
-		if(pixel >= 0 && pixel < buffer_width * buffer_height) {
-			pixel_buffer[4*pixel] = color.b; 
-			pixel_buffer[4*pixel+1] = color.g; 
-			pixel_buffer[4*pixel+2] = color.r; 
-			pixel_buffer[4*pixel+3] = color.a; 
-		}
+		draw_pixel_in_buffer_rgba(
+				pixel_buffer, buffer_width, 
+				buffer_height, pixel, color); 
 	}
 }
 
@@ -265,7 +271,7 @@ void draw_nofill_circle_in_buffer(
 
 	f32 mid_y = y + 0.5;
 
-	f32 dist_from_edge; /* TODO: sry can't think of better name rn */
+	f32 dist_from_edge; 
 
 	/* keep incrementing x, and if midpoint is outside circle, 
 	 * decrement y 
@@ -280,82 +286,58 @@ void draw_nofill_circle_in_buffer(
 		/* first octant (starting at top) */
 		pixel = ((i32)(cy+y) * buffer_width + (i32)(cx+x));
 
-		if(pixel >= 0 && pixel < buffer_width * buffer_height) {
-			pixel_buffer[4*pixel] = color.b; 
-			pixel_buffer[4*pixel+1] = color.g; 
-			pixel_buffer[4*pixel+2] = color.r; 
-			pixel_buffer[4*pixel+3] = color.a; 
-		}
+		draw_pixel_in_buffer_rgba(
+				pixel_buffer, buffer_width, 
+				buffer_height, pixel, color); 
 
 		/* second octant (going clockwise) */
 		pixel = ((i32)(cy-x) * buffer_width + (i32)(cx-y));
 
-		if(pixel >= 0 && pixel < buffer_width * buffer_height) {
-			pixel_buffer[4*pixel] = color.b; 
-			pixel_buffer[4*pixel+1] = color.g; 
-			pixel_buffer[4*pixel+2] = color.r; 
-			pixel_buffer[4*pixel+3] = color.a; 
-		}
+		draw_pixel_in_buffer_rgba(
+				pixel_buffer, buffer_width, 
+				buffer_height, pixel, color); 
 
 		/* third octant */
 		pixel = ((i32)(cy+x) * buffer_width + (i32)(cx-y));
 
-		if(pixel >= 0 && pixel < buffer_width * buffer_height) {
-			pixel_buffer[4*pixel] = color.b; 
-			pixel_buffer[4*pixel+1] = color.g; 
-			pixel_buffer[4*pixel+2] = color.r; 
-			pixel_buffer[4*pixel+3] = color.a; 
-		}
+		draw_pixel_in_buffer_rgba(
+				pixel_buffer, buffer_width, 
+				buffer_height, pixel, color); 
 
 		/* fourth octant */
 		pixel = ((i32)(cy-y) * buffer_width + (i32)(cx+x));
 
-		if(pixel >= 0 && pixel < buffer_width * buffer_height) {
-			pixel_buffer[4*pixel] = color.b; 
-			pixel_buffer[4*pixel+1] = color.g; 
-			pixel_buffer[4*pixel+2] = color.r; 
-			pixel_buffer[4*pixel+3] = color.a; 
-		}
+		draw_pixel_in_buffer_rgba(
+				pixel_buffer, buffer_width, 
+				buffer_height, pixel, color); 
 
 		/* fifth octant */
 		pixel = ((i32)(cy-y) * buffer_width + (i32)(cx-x));
 
-		if(pixel >= 0 && pixel < buffer_width * buffer_height) {
-			pixel_buffer[4*pixel] = color.b; 
-			pixel_buffer[4*pixel+1] = color.g; 
-			pixel_buffer[4*pixel+2] = color.r; 
-			pixel_buffer[4*pixel+3] = color.a; 
-		}
+		draw_pixel_in_buffer_rgba(
+				pixel_buffer, buffer_width, 
+				buffer_height, pixel, color); 
 
 		/* sixth octant */
 		pixel = ((i32)(cy+x) * buffer_width + (i32)(cx+y));
 
-		if(pixel >= 0 && pixel < buffer_width * buffer_height) {
-			pixel_buffer[4*pixel] = color.b; 
-			pixel_buffer[4*pixel+1] = color.g; 
-			pixel_buffer[4*pixel+2] = color.r; 
-			pixel_buffer[4*pixel+3] = color.a; 
-		}
+		draw_pixel_in_buffer_rgba(
+				pixel_buffer, buffer_width, 
+				buffer_height, pixel, color); 
 
 		/* seventh octant */
 		pixel = ((i32)(cy-x) * buffer_width + (i32)(cx+y));
 
-		if(pixel >= 0 && pixel < buffer_width * buffer_height) {
-			pixel_buffer[4*pixel] = color.b; 
-			pixel_buffer[4*pixel+1] = color.g; 
-			pixel_buffer[4*pixel+2] = color.r; 
-			pixel_buffer[4*pixel+3] = color.a; 
-		}
+		draw_pixel_in_buffer_rgba(
+				pixel_buffer, buffer_width, 
+				buffer_height, pixel, color); 
 
 		/* eigth octant */
 		pixel = ((i32)(cy+y) * buffer_width + (i32)(cx-x));
 
-		if(pixel >= 0 && pixel < buffer_width * buffer_height) {
-			pixel_buffer[4*pixel] = color.b; 
-			pixel_buffer[4*pixel+1] = color.g; 
-			pixel_buffer[4*pixel+2] = color.r; 
-			pixel_buffer[4*pixel+3] = color.a; 
-		}
+		draw_pixel_in_buffer_rgba(
+				pixel_buffer, buffer_width, 
+				buffer_height, pixel, color); 
 
 		dist_from_edge = (x * x) + (mid_y * mid_y) - (r * r);
 		if(dist_from_edge > 0)
@@ -370,10 +352,11 @@ void draw_nofill_circle_in_buffer(
 void draw_nofill_polygon_in_buffer(
 		u8 *pixel_buffer, 
 		u16 buffer_width, u16 buffer_height,
-		i32 num_points,
+		u32 num_points,
 		i32 *points, /* NOTE: x,y,x,y,x,y,etc... */
 		rgba_color color)
 {
+	/* draw line from point -> point sequentially */
 	u32 counter;
 	for(counter = 0; counter < num_points - 1; counter++)
 	{
@@ -384,6 +367,8 @@ void draw_nofill_polygon_in_buffer(
 				points[2*(counter+1)], points[2*(counter+1)+1],
 				color);
 	}
+
+	/* last point -> first point to close polygon */
 	draw_line_in_buffer(
 	   	pixel_buffer,
 	   	buffer_width, buffer_height,

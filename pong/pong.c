@@ -1,6 +1,6 @@
 #include "game.h"
 
-#define GAME_SPEED 1 
+#define GAME_SPEED 10 
 
 typedef struct {
 	u32 positions[2];	

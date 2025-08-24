@@ -3,6 +3,12 @@
 #include <stdlib.h> 
 #include <unistd.h> 
 #include <string.h>
+#include <sys/time.h> /* NOTE: gettimeofday */
+
+#define FRAME_RATE (30.0f)
+#define FRAME_TIME (1.0f/FRAME_RATE)
+
+#define _BSD_SOURCE
 
 typedef uint8_t u8;
 typedef uint16_t u16;
@@ -27,9 +33,70 @@ typedef double f64;
 #include "xcb_input.c" /* NOTE: my xcb input utils file */
 
 static x_keymap_info x_global_keymap_info = {0};
-static u16 x_global_window_width = 1000;
-static u16 x_global_window_height = 500;
+static u16 x_global_window_width;
+static u16 x_global_window_height;
 static game_input_state x_global_input_state = {0};
+
+struct timeval timeval_get()
+{
+	struct timeval tv;
+
+	i32 gettimeofday_result = gettimeofday(&tv, 0);
+	_assert(gettimeofday_result == 0);
+
+	return tv;
+}
+
+struct timeval timeval_get_difference(
+		struct timeval end, struct timeval start, b8 *success)
+{
+	struct timeval tv;
+	time_t s;
+	suseconds_t us;
+
+	if(end.tv_sec == start.tv_sec)
+	{
+		if(end.tv_usec < start.tv_usec)
+		{
+			if(success)
+			{
+				*success = false;
+			}
+		}
+	}
+
+	s = end.tv_sec - start.tv_sec;
+	/* NOTE: suseconds_t is signed, useconds_t is unsigned 
+	 * timeval.tv_usec is of type suseconds_t 
+	 */
+	us = end.tv_usec - start.tv_usec;
+
+	if(us < 0)
+	{
+		s--; /* NOTE: subtract from secs and carry over to usecs */
+		us += 1000000;
+	}
+
+	tv.tv_sec = s;
+	tv.tv_usec = us;
+	return tv;
+}
+
+i8 timeval_sleep(struct timeval tv)
+{
+	if(sleep(tv.tv_sec) != 0)
+	{
+		LOG_ERROR("failed to sleep");
+		_assert(0);
+	}
+	if(usleep(tv.tv_usec) == -1)
+	{
+		LOG_ERROR("failed to usleep");
+		_assert(0);
+	}
+	return true;
+}
+
 
 int main(int argc, char **argv) 
 {
@@ -45,6 +112,7 @@ int main(int argc, char **argv)
 
 	/* create connection to x server */
 	x_connection = xcb_connect(NULL, &x_screen_number);
+	LOG_INFO("Connected to X server.");
 
 	/* check if connection worked. returns 0 if success */
 	i32 res = xcb_connection_has_error(x_connection);
@@ -70,31 +138,14 @@ int main(int argc, char **argv)
 			break;
 		}
 	}
-
-	/*NOTE: temp stuff to make sure screen iterator code stuff works*/
-	printf ("\n");
-	printf ("Informations of screen %d:\n", x_screen->root);
-	printf ("  width.........: %d\n", x_screen->width_in_pixels);
-	printf ("  height........: %d\n", x_screen->height_in_pixels);
-	printf ("  white pixel...: %d\n", x_screen->white_pixel);
-	printf ("  black pixel...: %d\n", x_screen->black_pixel);
-	printf ("\n");
+	x_global_window_width = 1000;
+	x_global_window_height = 500;
 
 	/*generate id to be passed to xcb_create_window*/
 	xcb_window_t x_window_id = xcb_generate_id(x_connection);
-
-	/* NOTE: xcb_generate_id returns an unsigned int so idk
-	 * why the documentation/comments in header say that it returns
-	 * -1 on failure 
-	if(x_window_id == -1) {
-		LOG_ERROR("xcb_generate_id failed");
-		return(1);
-	}
-	*/
-
 	i32 x_win_value_mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
 	i32 x_win_value_list[2];
-	x_win_value_list[0] = x_screen->white_pixel;
+	x_win_value_list[0] = x_screen->black_pixel;
 
 	/* all events to register for */
 	x_win_value_list[1] = XCB_EVENT_MASK_EXPOSURE 
@@ -122,6 +173,7 @@ int main(int argc, char **argv)
 											(inherit from root) */
 		x_win_value_mask,				/*value_mask/value_list*/
 		x_win_value_list);
+	LOG_INFO("Created X window.");
 
 	/* register for WM_DELETE_WINDOW event */
 	/* create internal atom for WM_PROTOCOLS */
@@ -181,8 +233,6 @@ int main(int argc, char **argv)
 			32, 1,
 			&x_atom_wm_delete_window);
 
-	/* set to full screen */
-	/*
 	xcb_intern_atom_cookie_t x_internal_atom_wm_state =
 		xcb_intern_atom(x_connection, 1, 13, "_NET_WM_STATE");
 	xcb_intern_atom_reply_t *x_wm_state_reply =
@@ -225,21 +275,21 @@ int main(int argc, char **argv)
 			XCB_ATOM_ATOM,
 			32, 1,
 			&x_atom_wm_fullscreen);
-	*/
+
+	LOG_INFO("Set X window properties.");
 
 	/* load key symbols */
 	x_load_key_symbols(&x_global_keymap_info, x_connection, x_setup);
 
-	/* NOTE: fill pixmap data */
+	/* create pixel buffer */
 	u8 *x_pixmap_data;
 	x_pixmap_data = malloc(sizeof(*x_pixmap_data) *
 			(x_global_window_width * x_global_window_height * 4));
 
-	/* NOTE: create pixmap and put pixel array into it */
+	/* create pixmap */
 	xcb_pixmap_t x_backbuffer = xcb_generate_id(x_connection);
 	xcb_gcontext_t x_graphics_context = xcb_generate_id(x_connection);
 	i32 x_gc_values[2] = {x_screen->black_pixel, x_screen->white_pixel};
-
 	xcb_create_pixmap(
 			x_connection, 
 			x_screen->root_depth,
@@ -247,23 +297,12 @@ int main(int argc, char **argv)
 			x_window_id,
 			x_global_window_width, 
 			x_global_window_height);					
-
 	xcb_create_gc(x_connection, x_graphics_context, x_backbuffer,
 				XCB_GC_FOREGROUND | XCB_GC_BACKGROUND, x_gc_values);
-
-	xcb_put_image(
-			x_connection,
-			XCB_IMAGE_FORMAT_Z_PIXMAP,
-			x_backbuffer,
-			x_graphics_context, 
-			x_global_window_width,
-			x_global_window_height,
-			0, 0, 0,
-			x_screen->root_depth,
-			x_global_window_width * x_global_window_height * 4,
-			x_pixmap_data);
+	LOG_INFO("Set up pixel buffer.");
 
 	xcb_map_window(x_connection, x_window_id);
+	LOG_INFO("Mapped X window.");
 
 	/* NOTE: xcb_flush blocks until the write is complete */
 	if(xcb_flush(x_connection) < 1) { /*returns <= 0 on failure*/
@@ -273,8 +312,22 @@ int main(int argc, char **argv)
 
 	xcb_generic_event_t *x_event = 0;
 	char x_running = 1;
+
+	struct timeval start_timeval;
+	struct timeval end_timeval;
+	struct timeval post_update_timeval;
+	struct timeval temp_timeval;
+	struct timeval frame_timeval;
+	frame_timeval.tv_sec = 0;
+	frame_timeval.tv_usec = FRAME_TIME * 1000000;
+
+	LOG_INFO("Starting render loop...");
+
+
+	start_timeval = timeval_get();
 	while(x_running) 
 	{
+
 		/* get all the events that happened since last loop */
 		while((x_event = xcb_poll_for_event(x_connection))) {
 			/* NOTE: I have no idea where ~0x80 comes from */
@@ -296,31 +349,6 @@ int main(int argc, char **argv)
 				} break;
 				case XCB_EXPOSE: 
 				{
-					game_update_and_render(
-							x_pixmap_data, 
-							x_global_window_width,
-							x_global_window_height,
-							&x_global_input_state);
-					xcb_put_image(
-							x_connection,
-							XCB_IMAGE_FORMAT_Z_PIXMAP,
-							x_backbuffer,
-							x_graphics_context, 
-							x_global_window_width,
-							x_global_window_height,
-							0, 0, 0,
-							x_screen->root_depth,
-							x_global_window_width * 
-							x_global_window_height * 4,
-							x_pixmap_data);
-					xcb_copy_area (
-							x_connection,
-							x_backbuffer,
-							x_window_id,
-							x_graphics_context,
-							0, 0, 0, 0,
-							x_global_window_width,
-							x_global_window_height);
 					LOG_DEBUG("Expose event receieved");
 				} break;
 				case XCB_KEY_PRESS:
@@ -423,7 +451,7 @@ int main(int argc, char **argv)
 					if(x_client_message_data32 == x_atom_wm_delete_window)
 					{
 						LOG_DEBUG("WM_DELETE_WINDOW event");
-						LOG_INFO("closing window.");
+						LOG_INFO("Closing window...");
 						x_running = 0;
 					}
 				} break;
@@ -440,7 +468,31 @@ int main(int argc, char **argv)
 				x_pixmap_data, 
 				x_global_window_width,
 				x_global_window_height,
-				&x_global_input_state);
+	    			&x_global_input_state);
+
+		post_update_timeval = timeval_get();
+		temp_timeval = 
+			timeval_get_difference(
+					post_update_timeval, start_timeval, 0);
+		b8 success = true;
+		temp_timeval = 
+			timeval_get_difference(
+					frame_timeval, temp_timeval, &success);
+		if(!success)
+		{
+			LOG_WARN("Dropped frame.");
+			start_timeval = timeval_get();
+			continue;
+		}
+		timeval_sleep(temp_timeval); /* NOTE: wait remaining time 
+											to present frame */
+		end_timeval = timeval_get();
+		temp_timeval = 
+			timeval_get_difference(
+					end_timeval, start_timeval, 0);
+		start_timeval = timeval_get();
+
+		/* NOTE: present frame */
 		xcb_put_image(
 				x_connection,
 				XCB_IMAGE_FORMAT_Z_PIXMAP,
@@ -466,8 +518,11 @@ int main(int argc, char **argv)
 	/* NOTE: these are technically optional I think, but might
 	 * as well cleanup
 	 */
-	xcb_destroy_window(x_connection, x_window_id);
-	xcb_disconnect(x_connection);
+	LOG_INFO("Window closed.");
 	free(x_pixmap_data);
+	xcb_destroy_window(x_connection, x_window_id);
+	LOG_INFO("Destroyed X window.");
+	xcb_disconnect(x_connection);
+	LOG_INFO("Disconnected from X server.");
 	return 0;
 }
