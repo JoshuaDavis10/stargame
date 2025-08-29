@@ -19,33 +19,56 @@ typedef struct {
 	i32 y;
 	i32 w;
 	i32 h;
-} aabb;
+} struct_aabb;
 
 typedef struct {
-	f32 nexus_x;
-	f32 nexus_y;
+	f32 x;
+	f32 y;
+	f32 progress;
+	f32 health;
+	entity_type type;
+} struct_entity;
+
+typedef struct {
+	/* TODO: initialize these lists */
+	struct_entity *nexus;
+	struct_entity *units;
+	/* TODO: temp, just a harvester to use rn so I don't have to 
+	 * initialize a building list yet
+	 */
+	struct_entity *harvester;
+	struct_entity *buildings;
+	struct_entity *enemies;
+	u64 money;
+		
 	f64 last_time;
 	f64 time_elapsed;
-} game_state;
+} struct_game_state;
 
 /* NOTE: this goin' be useful for a looong time so keeping it */
-b8 check_collision_aabb(aabb first, aabb second);
+b8 check_collision_aabb(struct_aabb first, struct_aabb second);
 
 /* NOTE: x and y are center of unit */
-void draw_entity(
+/* TODO: edit this function to take in an entity struct */
+/* TODO: this function also needs to draw the health bars/progress
+ * bars of the entity it draws
+ */
+void draw_entity_in_buffer(
 		u8 *pixel_buffer,
 		u16 pixel_buffer_width,
 		u16 pixel_buffer_height,
-		i32 x, i32 y, 
-		entity_type type, 
-		rgba_color color);
-
+		struct_entity entity,
+		struct_rgba_color color);
 
 static b8 game_initialized = false;
-static game_state *state = 0;
-static rgba_color blue = {0, 0, 255, 0};
-static rgba_color red = {255, 0, 0, 0};
-static rgba_color black = {0, 0, 0, 0};
+static struct_game_state *state = 0;
+static struct_rgba_color blue = {0, 0, 255, 0};
+static struct_rgba_color white = {255, 255, 255, 0};
+static struct_rgba_color red = {255, 0, 0, 0};
+static struct_rgba_color black = {0, 0, 0, 0};
+static struct_rgba_color purple = {255, 0, 255, 0};
+static struct_string test_string;
+
 /* NOTE: runs every frame */
 void game_update_and_render(
 		void *game_memory,
@@ -57,72 +80,81 @@ void game_update_and_render(
 									push massive input struct onto stack
 									*/
 {
+	/* initialize */
 	if(!game_initialized)
 	{
 		memset(game_memory, 0, game_memory_size);
-		state = (game_state*)game_memory;
-		state->nexus_x = 500.0f;
-		state->nexus_y = 300.0f;
+		state = (struct_game_state*)game_memory;
+
+		/* TODO: bump allocator of some sort */
+		state->nexus = (struct_entity*)(((char*)state) + 
+				sizeof(*(state)));
+		state->harvester = (struct_entity*)(((char*)state) + 
+				sizeof(*(state->nexus)) + sizeof(*(state)));
 		game_initialized = true;
 		state->last_time = get_time_ms();
+		state->nexus->x = 300.0f;
+		state->nexus->y = 300.0f;
+		state->nexus->progress = 0.0f;
+		state->nexus->health = 100.0f;
+		state->nexus->type = ENTITY_NEXUS;
+
+		state->harvester->x = 700.0f;
+		state->harvester->y = 300.0f;
+		state->harvester->progress = 0.0f;
+		state->harvester->health = 100.0f;
+		state->harvester->type = ENTITY_HARVESTER;
+
+		string_create(&test_string, 
+				"ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890");
 	}
 
-	/* "physics" */
+	/* update */
 	state->time_elapsed = get_time_ms() - state->last_time;	
-	if(state->nexus_x < pixel_buffer_width - 100)
-	{
-		/* NOTE: go ~10 pixels in a second */
-		state->nexus_x += (state->time_elapsed) * NEXUS_MOVE_SPEED; 
-	}
-
 	state->last_time = get_time_ms();
 
+	state->harvester->progress += state->time_elapsed / 10.0f;
+	if(state->harvester->progress > 100.0f)
+	{
+		state->harvester->progress = 0.0f;
+		if(state->nexus->progress <= 95.0f)
+		{
+			state->nexus->progress += 5.0f;
+		}
+	}
+
+	/* render */
 	draw_background_in_buffer(
 		pixel_buffer,
 		pixel_buffer_width, 
 		pixel_buffer_height,
 		black); 
 
-	draw_entity(pixel_buffer, pixel_buffer_width, pixel_buffer_height,
-		100, 100, ENTITY_BIG, blue);
+	draw_entity_in_buffer(
+		pixel_buffer,
+		pixel_buffer_width,
+		pixel_buffer_height,
+		*(state->nexus),
+		blue);
 
-	draw_entity( pixel_buffer, pixel_buffer_width, pixel_buffer_height,
-		300, 100, ENTITY_MELEE, blue);
+	draw_entity_in_buffer(
+		pixel_buffer,
+		pixel_buffer_width,
+		pixel_buffer_height,
+		*(state->harvester),
+		blue);
 
-	draw_entity( pixel_buffer, pixel_buffer_width, pixel_buffer_height,
-		100, 300, ENTITY_RANGED, blue);
-
-	draw_entity( pixel_buffer, pixel_buffer_width, pixel_buffer_height,
-		300, 300, ENTITY_HARVESTER, blue);
-
-	draw_entity( pixel_buffer, pixel_buffer_width, pixel_buffer_height,
-		500, 100, ENTITY_BARRACKS, blue);
-
-	draw_entity( pixel_buffer, pixel_buffer_width, pixel_buffer_height,
-		(i32)state->nexus_x, (i32)state->nexus_y, ENTITY_NEXUS, blue);
-
-
-	draw_entity(pixel_buffer, pixel_buffer_width, pixel_buffer_height,
-		100, 500, ENTITY_BIG, red);
-
-	draw_entity( pixel_buffer, pixel_buffer_width, pixel_buffer_height,
-		300, 500, ENTITY_MELEE, red);
-
-	draw_entity( pixel_buffer, pixel_buffer_width, pixel_buffer_height,
-		100, 700, ENTITY_RANGED, red);
-
-	draw_entity( pixel_buffer, pixel_buffer_width, pixel_buffer_height,
-		300, 700, ENTITY_HARVESTER, red);
-
-	draw_entity( pixel_buffer, pixel_buffer_width, pixel_buffer_height,
-		500, 500, ENTITY_BARRACKS, red);
-
-	draw_entity( pixel_buffer, pixel_buffer_width, pixel_buffer_height,
-		500, 700, ENTITY_NEXUS, red);
-
+	draw_text_in_buffer(
+		pixel_buffer,
+		pixel_buffer_width, 
+		pixel_buffer_height,
+		100, 200, 
+		5,
+		test_string,
+		white);
 }
 
-b8 check_collision_aabb(aabb first, aabb second)
+b8 check_collision_aabb(struct_aabb first, struct_aabb second)
 {
 	/* if first is not to the left, to the right, above, or below second,
 	 * then collison
@@ -156,15 +188,16 @@ b8 check_collision_aabb(aabb first, aabb second)
 	return true;
 }
 
-void draw_entity(
+void draw_entity_in_buffer(
 		u8 *pixel_buffer,
 		u16 pixel_buffer_width,
 		u16 pixel_buffer_height,
-		i32 x, i32 y, 
-		entity_type type, 
-		rgba_color color)
+		struct_entity entity,
+		struct_rgba_color color)
 {
-	switch(type)
+	i32 x = (i32)entity.x;
+	i32 y = (i32)entity.y;
+	switch(entity.type)
 	{
 		case ENTITY_BIG:
 		{
@@ -222,6 +255,26 @@ void draw_entity(
 					4,
 					points, 
 					color);
+
+			/* draw health bar */
+			draw_nofill_rectangle_in_buffer(
+				pixel_buffer,
+				pixel_buffer_width, 
+				pixel_buffer_height,
+				x - 60, y - 130,
+				entity.health * 1.2f, 10,
+				red);
+			/* draw progress bar */
+			if(entity.progress > 0.0f)
+			{
+				draw_nofill_rectangle_in_buffer(
+					pixel_buffer,
+					pixel_buffer_width, 
+					pixel_buffer_height,
+					x - 60, y - 160,
+					entity.progress * 1.2f, 10,
+					purple);
+			}
 		} break;
 		case ENTITY_BARRACKS:
 		{
@@ -244,12 +297,35 @@ void draw_entity(
 				  x - 50, y - 86,
 				  x + 50, y - 86 };
 			draw_nofill_polygon_in_buffer(
-					pixel_buffer, 
+				pixel_buffer, 
+				pixel_buffer_width, 
+				pixel_buffer_height,
+				6,
+				points, 
+				color);
+
+			/* draw health bar */
+			draw_nofill_rectangle_in_buffer(
+				pixel_buffer,
+				pixel_buffer_width, 
+				pixel_buffer_height,
+				x - 80, y - 130,
+				entity.health * 1.6f, 10,
+				red);
+
+			/* TODO: temp, draw progress bar to keep track
+			 * of resources collected
+			 */
+			if(entity.progress > 0.0f)
+			{
+				draw_nofill_rectangle_in_buffer(
+					pixel_buffer,
 					pixel_buffer_width, 
 					pixel_buffer_height,
-					6,
-					points, 
-					color);
+					x - 80, y - 160,
+					entity.progress * 1.6f, 10,
+					purple);
+			}
 		} break;
 		default: 
 		{

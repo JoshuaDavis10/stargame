@@ -962,6 +962,12 @@ https://lists.freedesktop.org/pipermail/xcb/2010-December/006714.html
 		NOTE: FLOOD FILL ALGORITHM? (for filling in shapes and clearing
 		background color
 
+		NOTE: was gonna do a rounding function to round floats 
+		(for deciding what pixel to draw an entity on (e.g.
+		their x position is 3.7 so I would render at pixel x=4),
+		but it's a lot. potential fun thing to look into tho.
+		for now I'm okay with just truncating.
+
 		TODO: have option to log for a file. maybe have a separate
 		logging option for timing data so you can run a script to
 		analyze the file or smn (get averages, max, min, etc.)

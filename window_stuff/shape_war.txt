@@ -18,8 +18,81 @@ HEXAGON for main building
 CIRCLE for barracks (like 2x2 or smn)
  
 blue vs red <- color of shape is which team it's on (obviously)
-
 NOTE: ^ currently have functions to draw all of those
+
+memory management solution
+- I might just have the platform layer pass in a pointer to "game memory"
+to game_update_and_render. then I'd have separate platform memory for 
+like the framebuffer for example. This way the game can do whatever
+it wants with the memory, and the platform doesn't have to worry, which
+keeps the whole layer division pretty clean.
+- How do you feel about transient + also more permanent memory store?
+Both can use a bump allocator, but the transient stuff you could treat
+like a stack rather than using the stack. You could even have transient
+platform memory for like allocating strings in logging functions for
+example, etc. <- NOTE: maybe implement this in another game/some other
+time
+- then just first time through game_update_and_render, have a check
+for initialization, and initialize if not initialized. simple, honestly
+I like it.
+DONE
+
+maybe I start with nexus, and 2 harvesters and just program health
+bars for those, and gather resources, and have money go up
+ofc now we have to consider like UI
+^ things needed for this (this will be next iteration)
+[x] rendering progress bars
+
+TODO: text rendering to display resources
+- here's my thoughts on text rendering:
+	- each character has a unique drawing function... 
+	- each character is basically a rectangle that scales based on font
+	size... even font sizes will render different than odd font sizes
+	I guess? 1 pt font is 1 pixel
+
+	so like the letter "I" would be:
+
+					xxx
+					 x
+					 x
+					xxx
+
+					for 1 pt, that's a 4x3 rectangle
+						
+					for 2 pt?
+
+					xxxxxx
+					xxxxxx
+					  xx
+					  xx
+					  xx
+					  xx
+					xxxxxx
+					xxxxxx
+
+					? but maybe that's '4 pt'
+
+					so maybe I'll have a fixed font size for this game?
+
+					I'll see what "font size" looks good I guess.
+
+					I'll use ascii codes so that a string can get
+					passed directly, so we loop through string, 
+					draw each character starting at x, y (top left of
+					first char)
+
+TODO: mouse input, how to get one-click? wish I had a mouse for this 
+lol. will need to probably touch up keyboard input as well
+	- was_down, is_down, to track just a change in state rather
+	than just checking for down (i.e. repeating, but that's useful
+	for cases when u want key repeat)
+
+next iteration would be getting unit movement, aggro, selection, mouse
+input commands, etc.
+
+NOTE: I'm going to assume a fixed window size of 1920 x 1080 for this
+game bc it's not that crazy of a game that I'd actually release, yk
+
 
 next up:
 game state
@@ -60,23 +133,5 @@ so a nice "entity" struct
 	u32 progress; <- always 0 for anything other than barracks/harvester
 						WAIT maybe this is how u track attack cooldowns?
 }
-
-TODO: memory management solution
-- I might just have the platform layer pass in a pointer to "game memory"
-to game_update_and_render. then I'd have separate platform memory for 
-like the framebuffer for example. This way the game can do whatever
-it wants with the memory, and the platform doesn't have to worry, which
-keeps the whole layer division pretty clean.
-- How do you feel about transient + also more permanent memory store?
-Both can use a bump allocator, but the transient stuff you could treat
-like a stack rather than using the stack. You could even have transient
-platform memory for like allocating strings in logging functions for
-example, etc. <- NOTE: maybe implement this in another game/some other
-time
-- then just first time through game_update_and_render, have a check
-for initialization, and initialize if not initialized. simple, honestly
-I like it.
-
-
 
 TODO: get all of the above done

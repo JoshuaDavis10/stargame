@@ -170,3 +170,33 @@ i8 timeval_sleep(struct timeval tv)
 	}
 	return true;
 }
+
+typedef struct {
+	char *data;
+	u64 length;
+} struct_string;
+
+b8 string_create(struct_string *string, const char *text)
+{
+	u32 length = 0;
+	while(text[length] != '\0')
+	{
+		length++;
+	}
+	string->length = length;
+
+	/* TODO: have string_create take in a pointer to like an arena
+	 * or something that's already been allocated for it to use
+	 * instead of malloc
+	 */
+	string->data = malloc(string->length+1);
+
+	u32 counter;	
+	for(counter = 0; counter < string->length; counter++)
+	{
+		string->data[counter] = text[counter];
+	}
+	string->data[string->length] = '\0';
+
+	return true;
+}

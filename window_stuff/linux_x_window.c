@@ -246,6 +246,16 @@ int main(int argc, char **argv)
 	x_global_game_memory_size = sysconf(_SC_PAGESIZE);
 	LOG_DEBUG("pagesize: %u", x_global_game_memory_size);
 
+	/* TODO: open font, then make a gc for rendering fonts
+	xcb_open_font
+
+xcb_void_cookie_t
+xcb_open_font (xcb_connection_t *c,
+               xcb_font_t        fid,
+               uint16_t          name_len,
+               const char       *name);
+			   */
+
 	/* NOTE: for some reason MAP_ANONYMOUS was breaking without
 	 * MAP_PRIVATE
 	 */
@@ -432,17 +442,21 @@ int main(int argc, char **argv)
 		struct timeval update_time =
 			timeval_get_difference(
 					after_update, before_update, 0);
+		/*
 		LOG_DEBUG("game_update_and_render took: %us, %dus",
 				update_time.tv_sec,
 				update_time.tv_usec);
+				*/
 
 		post_update_timeval = timeval_get();
 		temp_timeval = 
 			timeval_get_difference(
 					post_update_timeval, start_timeval, 0);
+		/*
 		LOG_DEBUG("Time taken for frame update: %us, %dus",
 				temp_timeval.tv_sec,
 				temp_timeval.tv_usec);
+		*/
 		b8 success = true;
 		temp_timeval = 
 			timeval_get_difference(
