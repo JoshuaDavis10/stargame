@@ -1,9 +1,8 @@
+/*logging*/
 #include <stdio.h>
 #include <stdarg.h>
 
 #define MAX_LOGGER_MESSAGE_SIZE 16384
-
-/*logging*/
 
 #define LOGGER_ERROR_ENABLED 1
 #define LOGGER_WARN_ENABLED 1
@@ -92,7 +91,6 @@ void LOG_TRACE(const char *message, ...) {
 #endif
 
 /* assertions */
-
 #define _assert(expression)\
 {							\
 	if(!(expression))			\
@@ -104,6 +102,7 @@ void LOG_TRACE(const char *message, ...) {
 	} \
 }
 
+/* time stuff */
 struct timeval timeval_get()
 {
 	struct timeval tv;
@@ -171,6 +170,7 @@ i8 timeval_sleep(struct timeval tv)
 	return true;
 }
 
+/* string stuff */
 typedef struct {
 	char *data;
 	u64 length;
@@ -199,4 +199,45 @@ b8 string_create(struct_string *string, const char *text)
 	string->data[string->length] = '\0';
 
 	return true;
+}
+
+b8 string_free(struct_string *string)
+{
+	free(string->data);
+	string->data = 0;
+	string->length = 0;
+	return true;
+}
+
+/* arenas? */
+typedef struct {
+	void *memory;
+	u64 allocated;
+	u64 size; 
+} struct_memory_arena;
+
+b8 memory_arena_initialize(
+		struct_memory_arena *arena, 
+		void *memory, 
+		u64 size)
+{
+	arena->memory = memory;
+	memset(arena->memory, 0, size);
+	arena->allocated = 0;
+	arena->size = size;
+	return true;
+}
+
+void *memory_arena_allocate(struct_memory_arena *arena, u64 size)
+{
+	if(size + arena->allocated > arena->size)
+	{
+		LOG_WARN("memory_arena_allocate: tried to allocate past end of"
+				" arena\n\tarena size = %u, allocated = %u, attempted"
+				" allocation = %u\nreturning 0.",
+				arena->size, arena->allocated, size);
+		return 0;
+	}
+	arena->allocated+=size;
+	return ((char*)arena->memory + arena->allocated - size);
 }

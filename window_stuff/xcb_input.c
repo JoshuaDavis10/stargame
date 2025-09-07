@@ -91,6 +91,53 @@ typedef struct {
 	u8 x_min_key_code;
 } x_keymap_info;
 
+enum {
+	INPUT_BUTTON_STATE_UP = 0x00,
+	INPUT_BUTTON_STATE_DOWN = 0x03,
+	INPUT_BUTTON_STATE_RELEASED = 0x04,
+	INPUT_BUTTON_STATE_PRESSED = 0x01
+};
+
+#define NUM_X_INPUT_BUTTONS 66
+
+typedef struct {
+	union {
+		struct {
+			u8 backspace;
+			u8 tab;
+			u8 enter;
+			u8 escape;
+			u8 spacebar;
+
+			u8 left_arrow;
+			u8 up_arrow;
+			u8 right_arrow;
+			u8 down_arrow;
+
+			u8 fkeys[12]; /* NOTE: fkeys[0] is F1 */
+
+			u8 left_shift;
+			u8 right_shift;
+			u8 left_control;
+			u8 right_control;
+
+			u8 letters[26]; /* NOTE: letters[0] is A, letters[25] is Z */
+
+			u8 numbers[10]; /* NOTE: numbers[0] is 0, numbers[9] is 9 */
+
+			u8 mouse_left;
+			u8 mouse_right;
+			u8 mouse_wheel;
+			u8 mouse_wheel_up;
+			u8 mouse_wheel_down;
+		};
+		u8 x_input_buttons[NUM_X_INPUT_BUTTONS];
+	};
+
+	i16 mouse_x;
+	i16 mouse_y;
+} x_input_state;
+
 /*
  * @brief translates keycode into a keysym
  * @param x_keycode: keycode to be translated
@@ -108,207 +155,242 @@ xcb_keysym_t x_get_keysym_from_keycode(
 /* 
  * @brief registers the key stroke into the game input state
  * @param input: pointer to input state
- * @param keysym: key symbol of key that was pressed/released
- * @param pressed: true if pressed, false if released
+ * @param keysym: key symbol of key that was down/up
+ * @param down: true if down, false if up
  */
 void x_register_key_stroke(
-	game_input_state *input, 
+	x_input_state *input, 
 	xcb_keysym_t keysym,
-	b8 pressed)
+	b8 down)
 {
 	switch(keysym) {
 		case X_KEY_BACKSPACE: {
-			input->backspace = pressed;
+			input->backspace = down;
 		} break;
 		case X_KEY_TAB: {
-			input->tab = pressed;
+			input->tab = down;
 		} break;
 		case X_KEY_ENTER: {
-			input->enter = pressed;
+			input->enter = down;
 		} break;
 		case X_KEY_ESCAPE: {
-			input->escape = pressed;
+			input->escape = down;
 		} break;
 		case X_KEY_LEFT_ARROW: {
-			input->left_arrow = pressed;
+			input->left_arrow = down;
 		} break;
 		case X_KEY_UP_ARROW: {
-			input->up_arrow = pressed;
+			input->up_arrow = down;
 		} break;
 		case X_KEY_RIGHT_ARROW: {
-			input->right_arrow = pressed;
+			input->right_arrow = down;
 		} break;
 		case X_KEY_DOWN_ARROW: {
-			input->down_arrow = pressed;
+			input->down_arrow = down;
 		} break;
 		case X_KEY_F1: {
-			input->fkeys[0] = pressed;
+			input->fkeys[0] = down;
 		} break;
 		case X_KEY_F2: {
-			input->fkeys[1] = pressed;
+			input->fkeys[1] = down;
 		} break;
 		case X_KEY_F3: {
-			input->fkeys[2] = pressed;
+			input->fkeys[2] = down;
 		} break;
 		case X_KEY_F4: {
-			input->fkeys[3] = pressed;
+			input->fkeys[3] = down;
 		} break;
 		case X_KEY_F5: {
-			input->fkeys[4] = pressed;
+			input->fkeys[4] = down;
 		} break;
 		case X_KEY_F6: {
-			input->fkeys[5] = pressed;
+			input->fkeys[5] = down;
 		} break;
 		case X_KEY_F7: {
-			input->fkeys[6] = pressed;
+			input->fkeys[6] = down;
 		} break;
 		case X_KEY_F8: {
-			input->fkeys[7] = pressed;
+			input->fkeys[7] = down;
 		} break;
 		case X_KEY_F9: {
-			input->fkeys[8] = pressed;
+			input->fkeys[8] = down;
 		} break;
 		case X_KEY_F10: {
-			input->fkeys[9] = pressed;
+			input->fkeys[9] = down;
 		} break;
 		case X_KEY_F11: {
-			input->fkeys[10] = pressed;
+			input->fkeys[10] = down;
 		} break;
 		case X_KEY_F12: {
-			input->fkeys[11] = pressed;
+			input->fkeys[11] = down;
 		} break;
 
 		case X_KEY_LEFT_SHIFT: {
-			input->left_shift = pressed;
+			input->left_shift = down;
 		} break;
 		case X_KEY_RIGHT_SHIFT: {
-			input->right_shift = pressed;
+			input->right_shift = down;
 		} break;
 		case X_KEY_LEFT_CONTROL: {
-			input->left_control = pressed;
+			input->left_control = down;
 		} break;
 		case X_KEY_RIGHT_CONTROL: {
-			input->right_control = pressed;
+			input->right_control = down;
 		} break;
 
 		case X_KEY_A: {
-			input->letters[0] = pressed;
+			input->letters[0] = down;
 		} break;
 		case X_KEY_B: {
-			input->letters[1] = pressed;
+			input->letters[1] = down;
 		} break;
 		case X_KEY_C: {
-			input->letters[2] = pressed;
+			input->letters[2] = down;
 		} break;
 		case X_KEY_D: {
-			input->letters[3] = pressed;
+			input->letters[3] = down;
 		} break;
 		case X_KEY_E: {
-			input->letters[4] = pressed;
+			input->letters[4] = down;
 		} break;
 		case X_KEY_F: {
-			input->letters[5] = pressed;
+			input->letters[5] = down;
 		} break;
 		case X_KEY_G: {
-			input->letters[6] = pressed;
+			input->letters[6] = down;
 		} break;
 		case X_KEY_H: {
-			input->letters[7] = pressed;
+			input->letters[7] = down;
 		} break;
 		case X_KEY_I: {
-			input->letters[8] = pressed;
+			input->letters[8] = down;
 		} break;
 		case X_KEY_J: {
-			input->letters[9] = pressed;
+			input->letters[9] = down;
 		} break;
 		case X_KEY_K: {
-			input->letters[10] = pressed;
+			input->letters[10] = down;
 		} break;
 		case X_KEY_L: {
-			input->letters[11] = pressed;
+			input->letters[11] = down;
 		} break;
 		case X_KEY_M: {
-			input->letters[12] = pressed;
+			input->letters[12] = down;
 		} break;
 		case X_KEY_N: {
-			input->letters[13] = pressed;
+			input->letters[13] = down;
 		} break;
 		case X_KEY_O: {
-			input->letters[14] = pressed;
+			input->letters[14] = down;
 		} break;
 		case X_KEY_P: {
-			input->letters[15] = pressed;
+			input->letters[15] = down;
 		} break;
 		case X_KEY_Q: {
-			input->letters[16] = pressed;
+			input->letters[16] = down;
 		} break;
 		case X_KEY_R: {
-			input->letters[17] = pressed;
+			input->letters[17] = down;
 		} break;
 		case X_KEY_S: {
-			input->letters[18] = pressed;
+			input->letters[18] = down;
 		} break;
 		case X_KEY_T: {
-			input->letters[19] = pressed;
+			input->letters[19] = down;
 		} break;
 		case X_KEY_U: {
-			input->letters[20] = pressed;
+			input->letters[20] = down;
 		} break;
 		case X_KEY_V: {
-			input->letters[21] = pressed;
+			input->letters[21] = down;
 		} break;
 		case X_KEY_W: {
-			input->letters[22] = pressed;
+			input->letters[22] = down;
 		} break;
 		case X_KEY_X: {
-			input->letters[23] = pressed;
+			input->letters[23] = down;
 		} break;
 		case X_KEY_Y: {
-			input->letters[24] = pressed;
+			input->letters[24] = down;
 		} break;
 		case X_KEY_Z: {
-			input->letters[25] = pressed;
+			input->letters[25] = down;
 		} break;
 		case X_KEY_SPACE: {
-			input->spacebar = pressed;
+			input->spacebar = down;
 		} break;
 
 		case X_KEY_ZERO: {
-			input->numbers[0] = pressed;
+			input->numbers[0] = down;
 		} break;
 		case X_KEY_ONE: {
-			input->numbers[1] = pressed;
+			input->numbers[1] = down;
 		} break;
 		case X_KEY_TWO: {
-			input->numbers[2] = pressed;
+			input->numbers[2] = down;
 		} break;
 		case X_KEY_THREE: {
-			input->numbers[3] = pressed;
+			input->numbers[3] = down;
 		} break;
 		case X_KEY_FOUR: {
-			input->numbers[4] = pressed;
+			input->numbers[4] = down;
 		} break;
 		case X_KEY_FIVE: {
-			input->numbers[5] = pressed;
+			input->numbers[5] = down;
 		} break;
 		case X_KEY_SIX: {
-			input->numbers[6] = pressed;
+			input->numbers[6] = down;
 		} break;
 		case X_KEY_SEVEN: {
-			input->numbers[7] = pressed;
+			input->numbers[7] = down;
 		} break;
 		case X_KEY_EIGHT: {
-			input->numbers[8] = pressed;
+			input->numbers[8] = down;
 		} break;
 		case X_KEY_NINE: {
-			input->numbers[9] = pressed;
+			input->numbers[9] = down;
 		} break;
 		default: {
-			LOG_TRACE("x_register_key_press: unidentified keysym %x", 
+			LOG_TRACE("x_register_key_stroke: unidentified keysym %x", 
 					keysym);
 		} break;
 	}
+}
 
+void x_register_mouse_stroke(
+	x_input_state *input, 
+	x_mouse_button button,
+	b8 down)
+{
+	switch(button)
+	{
+		case X_MOUSE_LEFT:
+		{
+			input->mouse_left = down;
+		} break;
+		case X_MOUSE_RIGHT:
+		{
+			input->mouse_right= down;
+		} break;
+		case X_MOUSE_WHEEL:
+		{
+			input->mouse_wheel = down;
+		} break;
+		case X_MOUSE_WHEEL_UP:
+		{
+			input->mouse_wheel_up = down;
+		} break;
+		case X_MOUSE_WHEEL_DOWN:
+		{
+			input->mouse_wheel_down = down;
+		} break;
+		default:
+		{
+			LOG_TRACE("x_register_mouse_stroke: unidentified mouse " 
+						"button %x",
+						button);
+		} break;
+	}
 }
 
 /*

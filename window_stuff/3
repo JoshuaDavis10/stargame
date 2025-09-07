@@ -6,9 +6,9 @@
 #define NUM_UNITS 2
 #define NUM_ENEMIES 2
 
-#define MOVE_SPEED_BIG 1.0f
-#define MOVE_SPEED_MELEE 1.0f
-#define MOVE_SPEED_RANGED 1.0f
+#define MOVE_SPEED_BIG 0.1f
+#define MOVE_SPEED_MELEE 0.1f
+#define MOVE_SPEED_RANGED 0.1f
 
 typedef enum {
 	ENTITY_BIG,
@@ -27,12 +27,8 @@ typedef struct {
 	i32 h;
 } struct_aabb;
 
-struct struct_entity;
-
-typedef struct struct_entity {
-	struct struct_entity *aggro_target;
-	/* TODO: status: moving, aggroed, etc? */
-	/* TODO: range */
+typedef struct {
+	struct_entity *aggro_target;
 	f32 x;
 	f32 y;
 	f32 progress;
@@ -117,8 +113,7 @@ void game_update_and_render(
 		state->units[0].aggro_target = 0;
 		state->units[0].x = 300.0f;
 		state->units[0].y = 300.0f;
-		state->units[0].target[0] = 400.0f;
-		state->units[0].target[1] = 200.0f;
+		state->units[0].target = {400.0f, 200.0f};
 		state->units[0].health = 100.0f;
 		state->units[0].progress = 0.0f;
 		state->units[0].type = ENTITY_BIG;
@@ -126,8 +121,7 @@ void game_update_and_render(
 		state->units[1].aggro_target = 0;
 		state->units[1].x = 500.0f;
 		state->units[1].y = 300.0f;
-		state->units[1].target[0] = 600.0f; 
-		state->units[1].target[1] = 200.0f;
+		state->units[1].target = {600.0f, 200.0f};
 		state->units[1].health = 100.0f;
 		state->units[1].progress = 0.0f;
 		state->units[1].type = ENTITY_MELEE;
@@ -135,8 +129,7 @@ void game_update_and_render(
 		state->enemies[0].aggro_target = 0;
 		state->enemies[0].x = 300.0f;
 		state->enemies[0].y = 700.0f;
-		state->enemies[0].target[0] = 400.0f;
-		state->enemies[0].target[1] = 600.0f;
+		state->enemies[0].target = {400.0f, 600.0f};
 		state->enemies[0].health = 100.0f;
 		state->enemies[0].progress = 0.0f;
 		state->enemies[0].type = ENTITY_BIG;
@@ -144,8 +137,7 @@ void game_update_and_render(
 		state->enemies[1].aggro_target = 0;
 		state->enemies[1].x = 500.0f;
 		state->enemies[1].y = 700.0f;
-		state->enemies[1].target[0] = 600.0f;
-		state->enemies[1].target[1] = 600.0f;
+		state->enemies[1].target = {600.0f, 600.0f};
 		state->enemies[1].health = 100.0f;
 		state->enemies[1].progress = 0.0f;
 		state->enemies[1].type = ENTITY_MELEE;
@@ -390,24 +382,17 @@ void update_entity(struct_entity *entity)
 	if(entity->aggro_target)
 	{
 	}
-	if(entity->target[0] != -1.0f && entity->target[1] != -1.0f)
-	{
-		f32 xdist = entity->target[0] - entity->x;
-		f32 ydist = entity->target[1] - entity->y;
-		f32 magnitude = (f32)sqrt(xdist * xdist + ydist * ydist);
-		f32 xdist_unit = xdist / magnitude;
-		f32 ydist_unit = ydist / magnitude;
+	/* TODO: move toward target */	
+	f32 xdist = entity->x - entity->target[0];
+	f32 ydist = entity->y - entity->target[1];
+	f32 magnitude = sqrtf(xdist * xdist + ydist * ydist);
+	f32 xdist_unit = xdist / magnitude;
+	f32 ydist_unit = ydist / magnitude;
 
-		if(magnitude > 0.5f)
-		{
-			entity->x += xdist_unit * MOVE_SPEED_BIG;
-			entity->y += ydist_unit * MOVE_SPEED_BIG;
-		}
-		else
-		{
-			entity->target[0] = -1.0f;
-			entity->target[1] = -1.0f;
-		}
+	if(magnitude > 0.001f)
+	{
+		entity->x += xdist_unit * MOVE_SPEED_BIG;
+		entity->y += ydist_unit * MOVE_SPEED_BIG;
 	}
 
 	/* TODO: if at target, look for aggro targets */

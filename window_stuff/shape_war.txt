@@ -43,7 +43,7 @@ ofc now we have to consider like UI
 ^ things needed for this (this will be next iteration)
 [x] rendering progress bars
 
-TODO: text rendering to display resources
+text rendering to display resources
 - here's my thoughts on text rendering:
 	- each character has a unique drawing function... 
 	- each character is basically a rectangle that scales based on font
@@ -80,19 +80,55 @@ TODO: text rendering to display resources
 					passed directly, so we loop through string, 
 					draw each character starting at x, y (top left of
 					first char)
+DONE
 
-TODO: mouse input, how to get one-click? wish I had a mouse for this 
+mouse input, how to get one-click? wish I had a mouse for this 
 lol. will need to probably touch up keyboard input as well
 	- was_down, is_down, to track just a change in state rather
 	than just checking for down (i.e. repeating, but that's useful
 	for cases when u want key repeat)
+	- mouse has no repeat rate thing happening btw like keyboard does
+	- at some point, you'll need to do something similar for keyboard,
+	so might as well now
 
-next iteration would be getting unit movement, aggro, selection, mouse
-input commands, etc.
+	implementation:
+	- so I think I need a platform layer input state that just has
+	down or up for each key/button -> so I'd have 2 of those, 
+	and every frame you would check the diff between the 2 and that's
+	what goes into the game_input state <- game input state should just
+	have whether a button's state changed from 0 -> 1 (pressed) or 
+	1 -> 0 (released)
+
+	- I'm gonna do an almost full rewrite of the input system from
+	platform side. I'll obv keep all the keysym stuff, but like yk
+	anyways
+DONE
+
+NOTE: still need to get mouse wheel input working, it was being weird
+today. basically I think it gives 2 back-to-back events (like the repeat
+rate stuff), so I'll have to have some system that peeks the next 
+event to check if there's a key repeat/mouse wheel
+
+unit movement, aggro, selection, mouse input commands, etc.
+- selection:
+	- I think I'll have one "selected entity" in game state
+	that responds to any input
+- movement
+	- each unit has a target location
+		- if a unit is aggroed, it will update it's target location
+		to be the unit it's aggroed on UNLESS it is within range, then
+		just stop and shoot at the enemy
+		- aggro gets reset (i.e. target is NULL) whenever a manual move
+		command is issued
+		- if an attack move command is issued, then unit will scan
+		for enemies to add as their aggro target
+- so I'm going to create a test scenario with just a few units
+	- need a memory allocator at this point to setup the game state
+	- need a dynamic array for the unit lists, unless you want to use
+	a linked list
 
 NOTE: I'm going to assume a fixed window size of 1920 x 1080 for this
 game bc it's not that crazy of a game that I'd actually release, yk
-
 
 next up:
 game state

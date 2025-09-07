@@ -9,8 +9,6 @@
 #define FRAME_RATE (60.0f)
 #define FRAME_TIME (1.0f/FRAME_RATE)
 
-#define _BSD_SOURCE
-
 typedef uint8_t u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
@@ -30,15 +28,36 @@ typedef double f64;
 #define false 0
 
 #include "util.c"
-#include "game.c"
 #include "xcb_input.c" /* NOTE: my xcb input utils file */
+#include "game.c"
 
+/* TODO: platform state struct */
 static x_keymap_info x_global_keymap_info = {0};
 static u16 x_global_window_width;
 static u16 x_global_window_height;
-static game_input_state x_global_input_state = {0};
+static x_input_state x_global_new_input_state = {0};
+static x_input_state x_global_old_input_state = {0};
+static x_input_state x_global_game_input_state = {0};
 static void *x_global_game_memory_ptr;
 static u64 x_global_game_memory_size;
+
+void x_generate_game_input()
+{
+	u8 temp_state;
+
+	u32 counter;
+	for(counter = 0; counter < NUM_X_INPUT_BUTTONS; counter++)
+	{
+		temp_state = 
+			x_global_old_input_state.x_input_buttons[counter] << 1;
+		temp_state += 
+			x_global_new_input_state.x_input_buttons[counter];
+		x_global_game_input_state.x_input_buttons[counter] = temp_state;
+	}
+
+	x_global_game_input_state.mouse_x = x_global_new_input_state.mouse_x;
+	x_global_game_input_state.mouse_y = x_global_new_input_state.mouse_y;
+}
 
 int main(int argc, char **argv) 
 {
@@ -246,16 +265,6 @@ int main(int argc, char **argv)
 	x_global_game_memory_size = sysconf(_SC_PAGESIZE);
 	LOG_DEBUG("pagesize: %u", x_global_game_memory_size);
 
-	/* TODO: open font, then make a gc for rendering fonts
-	xcb_open_font
-
-xcb_void_cookie_t
-xcb_open_font (xcb_connection_t *c,
-               xcb_font_t        fid,
-               uint16_t          name_len,
-               const char       *name);
-			   */
-
 	/* NOTE: for some reason MAP_ANONYMOUS was breaking without
 	 * MAP_PRIVATE
 	 */
@@ -333,7 +342,7 @@ xcb_open_font (xcb_connection_t *c,
 								x_global_keymap_info,
 								key_press_event_keycode);
 					x_register_key_stroke(
-							&x_global_input_state, 
+							&x_global_new_input_state, 
 							key_press_event_keysym,
 							true);
 				} break;
@@ -353,7 +362,7 @@ xcb_open_font (xcb_connection_t *c,
 								key_release_event_keycode);
 
 					x_register_key_stroke(
-							&x_global_input_state, 
+							&x_global_new_input_state, 
 							key_release_event_keysym,
 							false);
 				} break;
@@ -362,10 +371,14 @@ xcb_open_font (xcb_connection_t *c,
 					xcb_button_press_event_t *x_mouse_button_press_event =
 						(xcb_button_press_event_t *)x_event;
 
-					/* TODO: create some input state that is 
-					 * changed by mouse button events
-					 */
+					u8 button = x_mouse_button_press_event->detail;
 
+					x_register_mouse_stroke(
+							&x_global_new_input_state,
+							button,
+							true);
+
+					LOG_DEBUG("pressed button: %u", button);
 				} break;
 				case XCB_BUTTON_RELEASE:
 				{
@@ -373,10 +386,13 @@ xcb_open_font (xcb_connection_t *c,
 					*x_mouse_button_release_event =
 						(xcb_button_release_event_t *)x_event;
 
-					/* TODO: create some input state that is 
-					 * changed by mouse button events
-					 */
+					u8 button = x_mouse_button_release_event->detail;
 
+					x_register_mouse_stroke(
+							&x_global_new_input_state,
+							button,
+							false);
+					LOG_DEBUG("released button: %u", button);
 				} break;
 				case XCB_MOTION_NOTIFY:
 				{
@@ -386,12 +402,8 @@ xcb_open_font (xcb_connection_t *c,
 					i16 mouse_x = x_mouse_motion_event->event_x;
 					i16 mouse_y = x_mouse_motion_event->event_y;
 
-					LOG_DEBUG("mouse move; pos: %d, %d", mouse_x, 
-							mouse_y);
-
-					/* TODO: create some input state that is 
-					 * changed by mouse move events
-					 */
+					x_global_new_input_state.mouse_x = mouse_x;
+					x_global_new_input_state.mouse_y = mouse_y;
 				} break;
 				case XCB_ENTER_NOTIFY:
 				{
@@ -430,6 +442,9 @@ xcb_open_font (xcb_connection_t *c,
 			}
 			free(x_event); /*NOTE: every loop... seriously*/
 		}
+
+		x_generate_game_input();
+
 		struct timeval before_update = timeval_get();
 		game_update_and_render(
 				x_global_game_memory_ptr,
@@ -437,7 +452,7 @@ xcb_open_font (xcb_connection_t *c,
 				x_pixmap_data, 
 				x_global_window_width,
 				x_global_window_height,
-	    			&x_global_input_state);
+	    			&x_global_game_input_state);
 		struct timeval after_update = timeval_get();
 		struct timeval update_time =
 			timeval_get_difference(
@@ -456,7 +471,7 @@ xcb_open_font (xcb_connection_t *c,
 		LOG_DEBUG("Time taken for frame update: %us, %dus",
 				temp_timeval.tv_sec,
 				temp_timeval.tv_usec);
-		*/
+				*/
 		b8 success = true;
 		temp_timeval = 
 			timeval_get_difference(
@@ -496,6 +511,9 @@ xcb_open_font (xcb_connection_t *c,
 				0, 0, 0, 0,
 				x_global_window_width,
 				x_global_window_height);
+		
+		/* flip input state */
+		x_global_old_input_state = x_global_new_input_state;
 	}
 
 	/* NOTE: these are technically optional I think, but might

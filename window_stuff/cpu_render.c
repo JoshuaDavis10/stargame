@@ -812,15 +812,30 @@ void draw_text_in_buffer(
 	u32 character;
 	for(character = 0; character < text.length; character++)
 	{
-		draw_character_in_buffer(
-			pixel_buffer, buffer_width, buffer_height,
-			char_x, char_y,
-			font_size,
-			text.data[character],
-			color);
+		switch(text.data[character])
+		{
+			case ' ':
+			{
+				char_x += font_size * 7 + font_size;
+			} break;
+			case '\n':
+			{
+				char_y += font_size * 7 + 2 * font_size;
+				char_x = x;
+			} break;
+			default:
+			{
+				draw_character_in_buffer(
+					pixel_buffer, buffer_width, buffer_height,
+					char_x, char_y,
+					font_size,
+					text.data[character],
+					color);
+				char_x += font_size * 7 + font_size;
+			} break;
+		}
 		/* NOTE: we're basically making
 		 * every character 7x7 for now
 		 */
-		char_x += font_size * 7 + font_size;
 	}
 }
