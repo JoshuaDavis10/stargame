@@ -9,6 +9,7 @@
 #define LOGGER_INFO_ENABLED 1
 #define LOGGER_DEBUG_ENABLED 1
 #define LOGGER_TRACE_ENABLED 1
+#define LOGGER_LIBRARY_ENABLED 1
 
 typedef enum {
 	LOGGER_ERROR,
@@ -90,6 +91,20 @@ void LOG_TRACE(const char *message, ...) {
 }
 #endif
 
+#if LOGGER_LIBRARY_ENABLED
+void LOG_LIB(const char *message, ...) {
+	char output[MAX_LOGGER_MESSAGE_SIZE];
+	va_list arg_ptr;
+	va_start(arg_ptr, message);
+    vsnprintf(output, MAX_LOGGER_MESSAGE_SIZE, message, arg_ptr);
+	va_end(arg_ptr);
+	printf("\e[1;35m[LIB]:\e[0;35m %s\e[0;37m\n", output);
+}
+#else
+void LOG_LIB(const char *message, ...) {
+}
+#endif
+
 /* assertions */
 #define _assert(expression)\
 {							\
@@ -124,7 +139,7 @@ f64 get_time_ms()
 }
 
 struct timeval timeval_get_difference(
-		struct timeval end, struct timeval start, b8 *success)
+		struct timeval end, struct timeval start, b32 *success)
 {
 	struct timeval tv;
 	time_t s;
@@ -180,7 +195,7 @@ typedef struct {
 	u64 size; 
 } struct_memory_arena;
 
-b8 memory_arena_initialize(
+b32 memory_arena_initialize(
 		struct_memory_arena *arena, 
 		void *memory, 
 		u64 size)

@@ -70,7 +70,7 @@ void draw_line_in_buffer(
 	i32 xdist_abs;
 	i32 ydist_abs;
 
-	b8 xdist_greater = false;
+	b32 xdist_greater = false;
 
 	if(xdist < 0)
 	{
@@ -397,7 +397,7 @@ void draw_character_in_buffer(
 	 * system if I haven't switched to 3D by then although
 	 * I'm sure you also have to do nasty stuff for text in 3D
 	 */
-	b8 pixels[49] = {false}; /* each of these is either 0 or 1 
+	b32 pixels[49] = {false}; /* each of these is either 0 or 1 
 					 * i.e. drawn or
 					 * not drawn, so each switch case will set this
 					 * array accordingly and we'll do a loop to draw
@@ -803,7 +803,7 @@ void draw_text_in_buffer(
 		u8 *pixel_buffer, u16 buffer_width, u16 buffer_height,
 		i32 x, i32 y,
 		u8 font_size,
-		struct_string text,
+		jstring text,
 		struct_rgba_color color)
 {
 	/* TODO: */

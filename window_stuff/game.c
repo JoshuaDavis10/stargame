@@ -7,17 +7,17 @@
 
 #include "jstring.h"
 
-typedef uint8_t u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
+typedef unsigned char u8;
+typedef unsigned short u16;
+typedef unsigned int u32;
+typedef unsigned long long u64;
 
-typedef int8_t i8;
-typedef int16_t i16;
-typedef int32_t i32;
-typedef int64_t i64;
+typedef signed char i8;
+typedef signed short i16;
+typedef signed int i32;
+typedef signed long long i64;
 
-typedef char b8;
+typedef unsigned int b32;
 
 typedef float f32;
 typedef double f64;
@@ -70,15 +70,6 @@ typedef struct {
 
 #include "cpu_render.c"
 
-
-/* TODO: temp? */
-#define NUM_UNITS 2
-#define NUM_ENEMIES 2
-
-#define MOVE_SPEED_BIG 1.0f
-#define MOVE_SPEED_MELEE 1.0f
-#define MOVE_SPEED_RANGED 1.0f
-
 typedef enum {
 	ENTITY_BIG,
 	ENTITY_MELEE,
@@ -88,13 +79,6 @@ typedef enum {
 	ENTITY_NEXUS,
 	ENTITY_ENUM_LENGTH
 } entity_type;
-
-typedef struct {
-	i32 x;
-	i32 y;
-	i32 w;
-	i32 h;
-} struct_aabb;
 
 struct struct_entity;
 
@@ -110,18 +94,44 @@ typedef struct struct_entity {
 	entity_type type;
 } struct_entity;
 
+/* TODO: temp? */
+#define NUM_UNITS 2
+#define NUM_ENEMIES 2
+
 typedef struct {
-	struct_entity *units;
+	b32 initialized;
+	struct_entity units[NUM_UNITS];
 	struct_entity *buildings;
-	struct_entity *enemies;
+	struct_entity enemies[NUM_ENEMIES];
 	struct_entity *selected;
 	u64 money;
 	f64 last_time;
 	f64 time_elapsed;
+	/* TODO: delete this */
+	f64 bs_variable; 
 } struct_game_state;
 
+#define MOVE_SPEED_BIG 1.0f
+#define MOVE_SPEED_MELEE 1.0f
+#define MOVE_SPEED_RANGED 1.0f
+
+#define GAME_STATE_MEMORY_OFFSET (0)
+#define STRING_MEMORY_OFFSET  \
+(GAME_STATE_MEMORY_OFFSET + sizeof(struct_game_state)) 
+
+#define STRING_MEMORY_SIZE 1024
+#define END_OF_USED_MEMORY_OFFSET \
+(GAME_STATE_MEMORY_OFFSET + STRING_MEMORY_OFFSET + STRING_MEMORY_SIZE)
+
+typedef struct {
+	i32 x;
+	i32 y;
+	i32 w;
+	i32 h;
+} struct_aabb;
+
 /* NOTE: this goin' be useful for a looong time so keeping it */
-b8 check_collision_aabb(struct_aabb first, struct_aabb second);
+b32 check_collision_aabb(struct_aabb first, struct_aabb second);
 
 /* NOTE: x and y are center of unit */
 void draw_entity_in_buffer(
@@ -133,18 +143,12 @@ void draw_entity_in_buffer(
 
 void update_entity(struct_entity *entity);
 
-static b8 game_initialized = false;
-static struct_game_state *state = 0;
-static struct_memory_arena game_memory_arena;
-
 /* TODO: macros */
 static struct_rgba_color blue = {0, 0, 255, 0};
 static struct_rgba_color white = {255, 255, 255, 0};
 static struct_rgba_color red = {255, 0, 0, 0};
 static struct_rgba_color black = {0, 0, 0, 0};
 static struct_rgba_color purple = {255, 0, 255, 0};
-
-static void *string_mem = 0;
 
 /* NOTE: runs every frame */
 void game_update_and_render(
@@ -157,41 +161,28 @@ void game_update_and_render(
 									push massive input struct onto stack
 									*/
 {
-	/* initialize */
-	if(!game_initialized)
+	/* memory stuff */
+	_assert(game_memory != 0);
+	_assert(game_memory_size > END_OF_USED_MEMORY_OFFSET)
+	struct_game_state *state = (struct_game_state*)(game_memory + 
+		GAME_STATE_MEMORY_OFFSET);
+	void *string_mem = game_memory + STRING_MEMORY_OFFSET;
+	if(!jstring_load_logging_function(LOG_LIB))
 	{
-		/* memory */
-		_assert(game_memory != 0);
-		/* TODO: assert game memory size is large enough */
-		memory_arena_initialize(
-				&game_memory_arena, 
-				game_memory,
-				game_memory_size);
-		_assert(game_memory_arena.memory != 0);
-		state = memory_arena_allocate(&game_memory_arena, sizeof(*state));
-		_assert(state != 0);
+		_assert(0);
+	}
 
-		string_mem =
-			memory_arena_allocate(&game_memory_arena, 1024);
 
-		if(!jstring_memory_activate(1024, string_mem))
-		{
-			_assert(0);
-		}
+	if(!jstring_memory_activate(STRING_MEMORY_SIZE, string_mem))
+	{
+		_assert(0);
+	}
 
+	/* initialize */
+	if(!state->initialized)
+	{
 		/* state */
 		state->last_time = get_time_ms();
-		/* TODO: this assumes unit/building lists are a constant size. do 
-		 * we want to just have that be the case in this game?
-		 */
-		state->units = memory_arena_allocate(
-				&game_memory_arena,
-				sizeof(*(state->units)) * NUM_UNITS);
-		_assert(state->units != 0);
-		state->enemies = memory_arena_allocate(
-				&game_memory_arena,
-				sizeof(*(state->enemies)) * NUM_ENEMIES);
-		_assert(state->enemies != 0);
 
 		state->units[0].aggro_target = 0;
 		state->units[0].x = 300.0f;
@@ -229,12 +220,24 @@ void game_update_and_render(
 		state->enemies[1].progress = 0.0f;
 		state->enemies[1].type = ENTITY_MELEE;
 
-		game_initialized = true;
+		/* TODO: temp bs stuff */
+		state->bs_variable = 0.0;
+
+		state->initialized = true;
 	}
 
 	/* update */
+
 	state->time_elapsed = get_time_ms() - state->last_time;	
 	state->last_time = get_time_ms();
+
+	/* TODO: temp bs stuff */
+	state->bs_variable += state->time_elapsed; 
+	if(state->bs_variable > 500.0)
+	{
+		state->money++;
+		state->bs_variable = 0.0;
+	}
 
 	jstring money_string = jstring_create_temporary("MONEY ", 6);
 	jstring number_string = jstring_create_integer(state->money);
@@ -288,28 +291,20 @@ void game_update_and_render(
 		pixel_buffer_height,
 		10, 10, 
 		2,
-		money_string.data,
+		money_string,
 		white);
-
-	if(string_mem)
-	{
-		if(!jstring_memory_reset(1024, string_mem))
-		{
-			_assert(0);
-		}
-	}
 }
 
-b8 check_collision_aabb(struct_aabb first, struct_aabb second)
+b32 check_collision_aabb(struct_aabb first, struct_aabb second)
 {
 	/* if first is not to the left, to the right, above, or below second,
 	 * then collison
 	 */
 
-	b8 left = false;
-	b8 right = false;
-	b8 above = false;
-	b8 below = false;
+	b32 left = false;
+	b32 right = false;
+	b32 above = false;
+	b32 below = false;
 
 	if((first.x + first.w) < second.x)
 	{

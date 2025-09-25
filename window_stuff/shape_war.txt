@@ -134,6 +134,16 @@ NOTE: I implemented hot-reloading (at least it should work most of the
 time I think I eliminated the race condition) so that developing
 features/iterating for the game will be faster/easier 
 
+NOTE: after implementing hot-reloading, I realized, that stack variables
+in game.c get re-initialized every time the shared object is reloaded.
+so ANY data has to be in that game memory buffer that the platform
+layer passes. This includes modifying jstring.h to keep it's own state
+in the memory that is handed to it as well... I think. I'll have to
+make sure util.c and other incuded files in game.c don't also have
+stack variables that'll get re-initialized.
+- okay, fixed... I just reactivate jstring memory every frame bc
+we reset it anyway
+
 next up:
 game state
 	- nexus

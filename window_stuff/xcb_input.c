@@ -161,7 +161,7 @@ xcb_keysym_t x_get_keysym_from_keycode(
 void x_register_key_stroke(
 	x_input_state *input, 
 	xcb_keysym_t keysym,
-	b8 down)
+	b32 down)
 {
 	switch(keysym) {
 		case X_KEY_BACKSPACE: {
@@ -360,7 +360,7 @@ void x_register_key_stroke(
 void x_register_mouse_stroke(
 	x_input_state *input, 
 	x_mouse_button button,
-	b8 down)
+	b32 down)
 {
 	switch(button)
 	{

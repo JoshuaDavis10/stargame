@@ -96,11 +96,6 @@ static b32 jstring_memory_activate(u64 size, void *address)
 	jstring_temporary_memory_info.address = address;
 	jstring_temporary_memory_info.activated = true;
 
-	jstring_log(
-		"jstring_memory_activate: jstring memory activated "
-		"- %u bytes @%p", 
-		jstring_temporary_memory_info.size,
-		jstring_temporary_memory_info.address);
 	return true;
 }
 

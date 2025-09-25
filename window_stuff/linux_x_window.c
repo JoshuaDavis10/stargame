@@ -20,7 +20,7 @@ typedef int16_t i16;
 typedef int32_t i32;
 typedef int64_t i64;
 
-typedef char b8;
+typedef unsigned int b32;
 
 typedef float f32;
 typedef double f64;
@@ -275,6 +275,7 @@ int main(int argc, char **argv)
 				  baby */
 				-1, 0); /* NOTE: fd should be -1 if MAP_ANONYMOUS
 						   for portability apparently? */
+	memset(x_global_game_memory_ptr, 0, x_global_game_memory_size);
 
 	xcb_map_window(x_connection, x_window_id);
 	LOG_INFO("Mapped X window.");
@@ -495,7 +496,7 @@ int main(int argc, char **argv)
 				temp_timeval.tv_sec,
 				temp_timeval.tv_usec);
 				*/
-		b8 success = true;
+		b32 success = true;
 		temp_timeval = 
 			timeval_get_difference(
 					frame_timeval, temp_timeval, &success);
