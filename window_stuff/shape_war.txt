@@ -130,6 +130,10 @@ unit movement, aggro, selection, mouse input commands, etc.
 NOTE: I'm going to assume a fixed window size of 1920 x 1080 for this
 game bc it's not that crazy of a game that I'd actually release, yk
 
+NOTE: I implemented hot-reloading (at least it should work most of the
+time I think I eliminated the race condition) so that developing
+features/iterating for the game will be faster/easier 
+
 next up:
 game state
 	- nexus

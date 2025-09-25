@@ -5,6 +5,7 @@
 #include <string.h>
 #include <sys/time.h> /* gettimeofday */
 #include <sys/mman.h> /* mmap */
+#include <dlfcn.h> /* dlopen dlsym dlclose */
 
 #define FRAME_RATE (60.0f)
 #define FRAME_TIME (1.0f/FRAME_RATE)
@@ -29,7 +30,6 @@ typedef double f64;
 
 #include "util.c"
 #include "xcb_input.c" /* NOTE: my xcb input utils file */
-#include "game.c"
 
 /* TODO: platform state struct */
 static x_keymap_info x_global_keymap_info = {0};
@@ -407,17 +407,11 @@ int main(int argc, char **argv)
 				} break;
 				case XCB_ENTER_NOTIFY:
 				{
-					/* NOTE: I mean there's not really any info to 
-					 * get here right? just that it happened? ... 
-					 * oh wait I guess you'd want to store the mouse pos
-					 * but doesn't that happen in motion anyways? wtf
-					 */
-					LOG_DEBUG("mouse entered window");
-					
+					/* TODO: is this event useful to me at all? */
 				} break;
 				case XCB_LEAVE_NOTIFY:
 				{
-					LOG_DEBUG("mouse left window");
+					/* TODO: is this event useful to me at all? */
 				} break;
 				case XCB_CLIENT_MESSAGE:
 				{
@@ -446,6 +440,31 @@ int main(int argc, char **argv)
 		x_generate_game_input();
 
 		struct timeval before_update = timeval_get();
+
+		struct timeval time_before_load = timeval_get();
+		void *game_shared_object_handle = dlopen("./libgame.so", RTLD_NOW);
+		if(!game_shared_object_handle)
+		{
+			LOG_ERROR("dlopen: %s", dlerror());
+		}
+		_assert(game_shared_object_handle);
+		void (*game_update_and_render)() = dlsym(
+				game_shared_object_handle, 
+				"game_update_and_render");
+		if(!game_update_and_render)
+		{
+			LOG_ERROR("dlsym: %s", dlerror());
+		}
+		_assert(game_update_and_render);
+		struct timeval time_after_load = timeval_get();
+		struct timeval load_time = 
+			timeval_get_difference(
+					time_after_load, time_before_load, 0);
+		/*
+		LOG_DEBUG("loading game code took: %us, %dus", 
+				load_time.tv_sec, load_time.tv_usec);
+				*/
+
 		game_update_and_render(
 				x_global_game_memory_ptr,
 				x_global_game_memory_size,
@@ -453,10 +472,14 @@ int main(int argc, char **argv)
 				x_global_window_width,
 				x_global_window_height,
 	    			&x_global_game_input_state);
+
 		struct timeval after_update = timeval_get();
 		struct timeval update_time =
 			timeval_get_difference(
 					after_update, before_update, 0);
+
+		dlclose(game_shared_object_handle);
+
 		/*
 		LOG_DEBUG("game_update_and_render took: %us, %dus",
 				update_time.tv_sec,

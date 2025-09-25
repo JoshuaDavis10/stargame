@@ -27,7 +27,7 @@ void LOG_ERROR(const char *message, ...) {
 	/* NOTE: vsnprintf is not in C89 standard? */
     vsnprintf(output, MAX_LOGGER_MESSAGE_SIZE, message, arg_ptr);
 	va_end(arg_ptr);
-	printf("\e[1;31m[ERROR]:\e[0;31m %s\e[0m\n", output);
+	printf("\e[1;31m[ERROR]:\e[0;31m %s\e[0;37m\n", output);
 }
 #else
 void LOG_ERROR(const char *message, ...) {
@@ -41,7 +41,7 @@ void LOG_WARN(const char *message, ...) {
 	va_start(arg_ptr, message);
     vsnprintf(output, MAX_LOGGER_MESSAGE_SIZE, message, arg_ptr);
 	va_end(arg_ptr);
-	printf("\e[1;33m[WARN]:\e[0;33m %s\e[0m\n", output);
+	printf("\e[1;33m[WARN]:\e[0;33m %s\e[0;37m\n", output);
 }
 #else
 void LOG_WARN(const char *message, ...) {
@@ -55,7 +55,7 @@ void LOG_INFO(const char *message, ...) {
 	va_start(arg_ptr, message);
     vsnprintf(output, MAX_LOGGER_MESSAGE_SIZE, message, arg_ptr);
 	va_end(arg_ptr);
-	printf("\e[1;32m[INFO]:\e[0;32m %s\e[0m\n", output);
+	printf("\e[1;32m[INFO]:\e[0;32m %s\e[0;37m\n", output);
 }
 #else
 void LOG_INFO(const char *message, ...) {
@@ -69,7 +69,7 @@ void LOG_DEBUG(const char *message, ...) {
 	va_start(arg_ptr, message);
     vsnprintf(output, MAX_LOGGER_MESSAGE_SIZE, message, arg_ptr);
 	va_end(arg_ptr);
-	printf("\e[1;34m[DEBUG]:\e[0;34m %s\e[0m\n", output);
+	printf("\e[1;34m[DEBUG]:\e[0;34m %s\e[0;37m\n", output);
 }
 #else
 void LOG_DEBUG(const char *message, ...) {
@@ -83,7 +83,7 @@ void LOG_TRACE(const char *message, ...) {
 	va_start(arg_ptr, message);
     vsnprintf(output, MAX_LOGGER_MESSAGE_SIZE, message, arg_ptr);
 	va_end(arg_ptr);
-	printf("\e[1m[TRACE]:\e[0m %s\n", output);
+	printf("\e[1;37m[TRACE]:\e[0;37m %s\n", output);
 }
 #else
 void LOG_TRACE(const char *message, ...) {
@@ -95,14 +95,17 @@ void LOG_TRACE(const char *message, ...) {
 {							\
 	if(!(expression))			\
 	{						\
-		printf("\e[0;31m[ASSERT]: EXPRESSION: %s, FILE: %s, LINE: " \
-				"%d\e[0m\n", \
+		printf("\e[1;31m[ASSERT]:[0;31mEXPRESSION: %s, FILE: %s, LINE: " \
+				"%d\e[0;37m\n", \
 				#expression, __FILE__, __LINE__); \
 		__builtin_trap(); \
 	} \
 }
 
 /* time stuff */
+#include <sys/time.h> /* gettimeofday */
+#include <unistd.h>
+
 struct timeval timeval_get()
 {
 	struct timeval tv;
@@ -167,45 +170,6 @@ i8 timeval_sleep(struct timeval tv)
 		LOG_ERROR("failed to usleep");
 		_assert(0);
 	}
-	return true;
-}
-
-/* string stuff */
-typedef struct {
-	char *data;
-	u64 length;
-} struct_string;
-
-b8 string_create(struct_string *string, const char *text)
-{
-	u32 length = 0;
-	while(text[length] != '\0')
-	{
-		length++;
-	}
-	string->length = length;
-
-	/* TODO: have string_create take in a pointer to like an arena
-	 * or something that's already been allocated for it to use
-	 * instead of malloc
-	 */
-	string->data = malloc(string->length+1);
-
-	u32 counter;	
-	for(counter = 0; counter < string->length; counter++)
-	{
-		string->data[counter] = text[counter];
-	}
-	string->data[string->length] = '\0';
-
-	return true;
-}
-
-b8 string_free(struct_string *string)
-{
-	free(string->data);
-	string->data = 0;
-	string->length = 0;
 	return true;
 }
 
