@@ -110,7 +110,7 @@ void LOG_LIB(const char *message, ...) {
 {							\
 	if(!(expression))			\
 	{						\
-		printf("\e[1;31m[ASSERT]:[0;31mEXPRESSION: %s, FILE: %s, LINE: " \
+		printf("\e[1;31m[ASSERT]:\e[0;31mEXPRESSION: %s, FILE: %s, LINE: " \
 				"%d\e[0;37m\n", \
 				#expression, __FILE__, __LINE__); \
 		__builtin_trap(); \

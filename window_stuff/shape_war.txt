@@ -1,25 +1,5 @@
 "GAME DESIGN" DOC for Shape War!
 
-1 resource
-3 buildings
-- resource harvester (can be built anywhere)
-- main building (kill this to win)
-- barracks (produce troops)
-3 unit types
-- medium health melee unit - cheap, fast?
-- low health, high damage range unit - cheap-ish, slow?
-- high health melee unit, high damage - expensive, slow?
-
-SQUARE for big unit
-TRIANGLE for melee unit
-X for ranged unit
-DIAMOND for harvest building
-HEXAGON for main building
-CIRCLE for barracks (like 2x2 or smn)
- 
-blue vs red <- color of shape is which team it's on (obviously)
-NOTE: ^ currently have functions to draw all of those
-
 memory management solution
 - I might just have the platform layer pass in a pointer to "game memory"
 to game_update_and_render. then I'd have separate platform memory for 
@@ -36,12 +16,6 @@ time
 for initialization, and initialize if not initialized. simple, honestly
 I like it.
 DONE
-
-maybe I start with nexus, and 2 harvesters and just program health
-bars for those, and gather resources, and have money go up
-ofc now we have to consider like UI
-^ things needed for this (this will be next iteration)
-[x] rendering progress bars
 
 text rendering to display resources
 - here's my thoughts on text rendering:
@@ -104,32 +78,6 @@ lol. will need to probably touch up keyboard input as well
 	anyways
 DONE
 
-NOTE: still need to get mouse wheel input working, it was being weird
-today. basically I think it gives 2 back-to-back events (like the repeat
-rate stuff), so I'll have to have some system that peeks the next 
-event to check if there's a key repeat/mouse wheel
-
-unit movement, aggro, selection, mouse input commands, etc.
-- selection:
-	- I think I'll have one "selected entity" in game state
-	that responds to any input
-- movement
-	- each unit has a target location
-		- if a unit is aggroed, it will update it's target location
-		to be the unit it's aggroed on UNLESS it is within range, then
-		just stop and shoot at the enemy
-		- aggro gets reset (i.e. target is NULL) whenever a manual move
-		command is issued
-		- if an attack move command is issued, then unit will scan
-		for enemies to add as their aggro target
-- so I'm going to create a test scenario with just a few units
-	- need a memory allocator at this point to setup the game state
-	- need a dynamic array for the unit lists, unless you want to use
-	a linked list
-
-NOTE: I'm going to assume a fixed window size of 1920 x 1080 for this
-game bc it's not that crazy of a game that I'd actually release, yk
-
 NOTE: I implemented hot-reloading (at least it should work most of the
 time I think I eliminated the race condition) so that developing
 features/iterating for the game will be faster/easier 
@@ -144,44 +92,23 @@ stack variables that'll get re-initialized.
 - okay, fixed... I just reactivate jstring memory every frame bc
 we reset it anyway
 
-next up:
-game state
-	- nexus
-		- health
-		- position
-	- *your_units
-		- health
-		- position
-	- *your_buildings
-		- health
-		- position
-		- progress (if applicable)
-	- your current "money"
-	- *enemy_units
-		- health
-		- position
+Oct 6, 2025
 
-game loop:
-	- your units
-		- if no target, check for enemies to acquire target
-		- if target
-			- if in range, and attack not on cooldown
-			- else move toward target
-		- else	
-			- if target move position, move toward there
-			- else do nothing
-	- enemy units same thing
-	- your buildings
-		- update progress
+	I'm going to need to add some rendering functionality
+	- world space -> screen space
+	- rotating shapes
+		- multiply vertices of shapes (in object space) by a 2x2 rotation
+		matrix with the desired basis vectors.
+	
+	shape:
+		- has object space vertices
+		- has world space position
 
-			this can be reordered ofc just getting the gist down
+		rendering is done by translating object space vertices to world
+		space (simple translation), then to screen space, and drawing a 
+		line between each vertex (i.e. calling draw_polygon or whatever
+		it's called)
 
-so a nice "entity" struct
-{
-	i32 health;
-	i32 x, y; <- position
-	u32 progress; <- always 0 for anything other than barracks/harvester
-						WAIT maybe this is how u track attack cooldowns?
-}
+	CURRENT GOAL: render a triangle that rotates every 0.5 seconds or
+	smn
 
-TODO: get all of the above done
