@@ -98,6 +98,10 @@ typedef struct {
 
 typedef struct {
 	shape triangle;
+	shape square;
+	shape diamond;
+	shape trapezoid;
+	shape hexagon;
 	camera game_camera; /* NOTE: world space coords */
 	f64 last_time;
 	f64 time_elapsed;
@@ -132,11 +136,17 @@ typedef struct {
 b32 check_collision_aabb(struct_aabb first, struct_aabb second);
 
 /* TODO: macros */
-static struct_rgba_color blue = {0, 0, 255, 0};
-static struct_rgba_color white = {255, 255, 255, 0};
 static struct_rgba_color red = {255, 0, 0, 0};
+static struct_rgba_color green = {0, 255, 0, 0};
+static struct_rgba_color blue = {0, 0, 255, 0};
+
+static struct_rgba_color magenta = {255, 0, 255, 0};
+static struct_rgba_color cyan = {0, 255, 255, 0};
+static struct_rgba_color yellow = {255, 255, 0, 0};
+static struct_rgba_color orange = {255, 150, 0, 0};
+
+static struct_rgba_color white = {255, 255, 255, 0};
 static struct_rgba_color black = {0, 0, 0, 0};
-static struct_rgba_color purple = {255, 0, 255, 0};
 
 void game_draw_shape(
 		u8 *pixel_buffer, 
@@ -208,6 +218,67 @@ void game_update_and_render(
 		vertex_data[2].x = -0.5f; /* "left" vertex */
 		vertex_data[2].y =  0.433;
 		state->triangle.vertices = vertex_data;
+
+			/* square */
+		state->square.type = SHAPE_TYPE_SQUARE;
+		state->square.position.x = 0.0f;
+		state->square.position.y = 0.0f;
+		vertex_data[3].x =  0.5f;
+		vertex_data[3].y =  0.5f;
+		vertex_data[4].x =  0.5f;
+		vertex_data[4].y = -0.5f;
+		vertex_data[5].x = -0.5f;
+		vertex_data[5].y = -0.5f;
+		vertex_data[6].x = -0.5f;
+		vertex_data[6].y =  0.5f;
+		state->square.vertices = vertex_data + 3;
+
+			/* diamond */
+		state->diamond.type = SHAPE_TYPE_DIAMOND;
+		state->diamond.position.x = 0.0f;
+		state->diamond.position.y = 0.0f;
+		vertex_data[7].x =  0.5f;
+		vertex_data[7].y =  0.0f;
+		vertex_data[8].x =  0.0f;
+		vertex_data[8].y =  0.866f;
+		vertex_data[9].x = -0.5f;
+		vertex_data[9].y =  0.0f;
+		vertex_data[10].x = 0.0f;
+		vertex_data[10].y =-0.866f;
+		state->diamond.vertices = vertex_data + 7;
+
+			/* trapezoid */
+		state->trapezoid.type = SHAPE_TYPE_TRAPEZOID;
+		state->trapezoid.position.x = 0.0f;
+		state->trapezoid.position.y = 0.0f;
+		vertex_data[11].x = 1.0f;
+		vertex_data[11].y = 0.433f;
+		vertex_data[12].x = 0.5f;
+		vertex_data[12].y =-0.433f;
+		vertex_data[13].x =-0.5f;
+		vertex_data[13].y =-0.433f;
+		vertex_data[14].x =-1.0f;
+		vertex_data[14].y = 0.433f;
+		state->trapezoid.vertices = vertex_data + 11;
+
+			/* hexagon */
+		state->hexagon.type = SHAPE_TYPE_HEXAGON;
+		state->hexagon.position.x = 0.0f;
+		state->hexagon.position.y = 0.0f;
+		vertex_data[15].x = 1.0f;
+		vertex_data[15].y = 0.0f;
+		vertex_data[16].x = 0.5f;
+		vertex_data[16].y = 0.866f;
+		vertex_data[17].x =-0.5f;
+		vertex_data[17].y = 0.866f;
+		vertex_data[18].x =-1.0f;
+		vertex_data[18].y = 0.0f;
+		vertex_data[19].x =-0.5f;
+		vertex_data[19].y =-0.866f;
+		vertex_data[20].x = 0.5f;
+		vertex_data[20].y =-0.866f;
+		state->hexagon.vertices = vertex_data + 15;
+
 		LOG_INFO("initialized game state.");
 	}
 
@@ -224,7 +295,18 @@ void game_update_and_render(
 	game_rotate_shape(
 		state->triangle,
 		(PI / 256.0f));
-
+	game_rotate_shape(
+		state->square,
+		(PI / 256.0f));
+	game_rotate_shape(
+		state->diamond,
+		(PI / 256.0f));
+	game_rotate_shape(
+		state->trapezoid,
+		(PI / 256.0f));
+	game_rotate_shape(
+		state->hexagon,
+		(PI / 256.0f));
 
 	/* render */
 	draw_background_in_buffer(
@@ -239,8 +321,39 @@ void game_update_and_render(
 		pixel_buffer_height, 
 		state->triangle,
 		state->game_camera,
-		purple);
+		green);
 
+	game_draw_shape(
+		pixel_buffer, 
+		pixel_buffer_width, 
+		pixel_buffer_height, 
+		state->square,
+		state->game_camera,
+		orange);
+
+	game_draw_shape(
+		pixel_buffer, 
+		pixel_buffer_width, 
+		pixel_buffer_height, 
+		state->diamond,
+		state->game_camera,
+		blue);
+
+	game_draw_shape(
+		pixel_buffer, 
+		pixel_buffer_width, 
+		pixel_buffer_height, 
+		state->trapezoid,
+		state->game_camera,
+		red);
+
+	game_draw_shape(
+		pixel_buffer, 
+		pixel_buffer_width, 
+		pixel_buffer_height, 
+		state->hexagon,
+		state->game_camera,
+		yellow);
 
 
 	draw_text_in_buffer(
@@ -336,6 +449,90 @@ void game_draw_shape(
 					pixel_buffer, buffer_width, buffer_height,
 					3, points, color);
 		} break;
+		case SHAPE_TYPE_SQUARE:
+		case SHAPE_TYPE_DIAMOND:
+		case SHAPE_TYPE_TRAPEZOID:
+		{
+			i32 points[8]; 
+			vector_2 temp[4]; 
+			temp[0] = s.vertices[0];
+			temp[1] = s.vertices[1];
+			temp[2] = s.vertices[2];
+			temp[3] = s.vertices[3];
+			
+			/* translate to world space by adding shape's position */
+			u32 index;
+			for(index = 0; index < 4; index++)
+			{
+				temp[index].x += s.position.x;
+				temp[index].y += s.position.y;
+			}
+
+			/* translate to camera space by subtracting camera origin */
+			for(index = 0; index < 4; index++)
+			{
+				temp[index].x -= c.position.x;
+				temp[index].y -= c.position.y;
+			}
+
+			/* translate to screen space */
+			for(index = 0; index < 4; index++)
+			{
+				points[2*index] = 
+					temp[index].x * (buffer_width/c.bounds.x) + 
+					(buffer_width/2.0f);
+				points[2*index+1] = 
+					temp[index].y * (buffer_height/c.bounds.y) + 
+					(buffer_height/2.0f);
+			}
+
+			/* draw the shape */
+			draw_nofill_polygon_in_buffer(
+					pixel_buffer, buffer_width, buffer_height,
+					4, points, color);
+		} break;
+		case SHAPE_TYPE_HEXAGON:
+		{
+			i32 points[12]; 
+			vector_2 temp[6]; 
+			temp[0] = s.vertices[0];
+			temp[1] = s.vertices[1];
+			temp[2] = s.vertices[2];
+			temp[3] = s.vertices[3];
+			temp[4] = s.vertices[4];
+			temp[5] = s.vertices[5];
+			
+			/* translate to world space by adding shape's position */
+			u32 index;
+			for(index = 0; index < 6; index++)
+			{
+				temp[index].x += s.position.x;
+				temp[index].y += s.position.y;
+			}
+
+			/* translate to camera space by subtracting camera origin */
+			for(index = 0; index < 6; index++)
+			{
+				temp[index].x -= c.position.x;
+				temp[index].y -= c.position.y;
+			}
+
+			/* translate to screen space */
+			for(index = 0; index < 6; index++)
+			{
+				points[2*index] = 
+					temp[index].x * (buffer_width/c.bounds.x) + 
+					(buffer_width/2.0f);
+				points[2*index+1] = 
+					temp[index].y * (buffer_height/c.bounds.y) + 
+					(buffer_height/2.0f);
+			}
+
+			/* draw the shape */
+			draw_nofill_polygon_in_buffer(
+					pixel_buffer, buffer_width, buffer_height,
+					6, points, color);
+		} break;
 		default:
 		{
 			_assert(0);
@@ -352,13 +549,6 @@ void game_rotate_shape(
 	rotation_matrix.m12 = -sin(radians);
 	rotation_matrix.m21 = sin(radians);
 	rotation_matrix.m22 = cos(radians);
-	LOG_DEBUG("matrix:\n"
-		"| %.2f %.2f |\n"
-		"| %.2f %.2f |",
-		rotation_matrix.m11,
-		rotation_matrix.m12,
-		rotation_matrix.m21,
-		rotation_matrix.m22);
 
 	switch(s.type)
 	{
@@ -366,6 +556,34 @@ void game_rotate_shape(
 		{
 			u32 index;
 			for(index = 0; index < 3; index++)
+			{
+				/* multiply the triangle's vertices by the rotation
+				 * matrix
+				 */
+				s.vertices[index] = 
+					multiply_vector_2_by_matrix_2x2(
+						s.vertices[index], rotation_matrix);
+			}
+		} break;
+		case SHAPE_TYPE_SQUARE: 
+		case SHAPE_TYPE_DIAMOND:
+		case SHAPE_TYPE_TRAPEZOID:
+		{
+			u32 index;
+			for(index = 0; index < 4; index++)
+			{
+				/* multiply the triangle's vertices by the rotation
+				 * matrix
+				 */
+				s.vertices[index] = 
+					multiply_vector_2_by_matrix_2x2(
+						s.vertices[index], rotation_matrix);
+			}
+		} break;
+		case SHAPE_TYPE_HEXAGON:
+		{
+			u32 index;
+			for(index = 0; index < 6; index++)
 			{
 				/* multiply the triangle's vertices by the rotation
 				 * matrix

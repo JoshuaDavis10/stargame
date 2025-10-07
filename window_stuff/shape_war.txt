@@ -111,4 +111,29 @@ Oct 6, 2025
 
 	CURRENT GOAL: render a triangle that rotates every 0.5 seconds or
 	smn
+	DONE
+
+	NEXT GOAL:
+	be able to render all the different shape war shapes, and rotate
+	them:
+	- square
+	- diamond
+	- trapezoid
+	- hexagon
+	- devise some way to store them in memory that makes sense, and
+	code that allows you to easily add more to the "scene"
+		- probably like a dynamic array of vertices that you push
+		onto the end of when you add a shape to the scene. that way
+		you can also arbitrarily remove shapes as well (at least with
+		an implementation that has a delete_at function of some sort)
+		- this darray implementation should not resize when the end is
+		reached, it should instead just not allow pushing when there's
+		not enough space left
+
+	NEXT NEXT GOAL:
+	- mouse click on shapes detection: i.e. code that let's me drag
+	shapes around
+	- collision detection between shapes
+	- getting that stuff working allows us to at least reason about
+	how to do the shape combining code
 
