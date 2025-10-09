@@ -1,92 +1,19 @@
-#include <math.h> /* cosf, sinf, sqrt TODO write your own versions */
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdint.h>
-
-#define PI 3.14159265f
-
-#include "jstring.h"
-
-typedef unsigned char u8;
-typedef unsigned short u16;
-typedef unsigned int u32;
-typedef unsigned long long u64;
-
-typedef signed char i8;
-typedef signed short i16;
-typedef signed int i32;
-typedef signed long long i64;
-
-typedef unsigned int b32;
-
-typedef float f32;
-typedef double f64;
-
-#define true 1
-#define false 0
+#include "game.h"
 
 #include "util.c"
-
-/* TODO: put this into a header */
-#define NUM_X_INPUT_BUTTONS 66
-
-typedef struct {
-	union {
-		struct {
-			u8 backspace;
-			u8 tab;
-			u8 enter;
-			u8 escape;
-			u8 spacebar;
-
-			u8 left_arrow;
-			u8 up_arrow;
-			u8 right_arrow;
-			u8 down_arrow;
-
-			u8 fkeys[12]; /* NOTE: fkeys[0] is F1 */
-
-			u8 left_shift;
-			u8 right_shift;
-			u8 left_control;
-			u8 right_control;
-
-			u8 letters[26]; /* NOTE: letters[0] is A, letters[25] is Z */
-
-			u8 numbers[10]; /* NOTE: numbers[0] is 0, numbers[9] is 9 */
-
-			u8 mouse_left;
-			u8 mouse_right;
-			u8 mouse_wheel;
-			u8 mouse_wheel_up;
-			u8 mouse_wheel_down;
-		};
-		u8 x_input_buttons[NUM_X_INPUT_BUTTONS];
-	};
-
-	i16 mouse_x;
-	i16 mouse_y;
-} x_input_state;
-
+#include "jstring.h"
 #include "cpu_render.c"
 #include "math.c"
+#include <math.h> /* cosf, sinf, sqrt TODO write your own versions */
 
-typedef enum {
+enum {
 	SHAPE_TYPE_TRIANGLE,
 	SHAPE_TYPE_SQUARE,
 	SHAPE_TYPE_DIAMOND,
 	SHAPE_TYPE_TRAPEZOID,
 	SHAPE_TYPE_HEXAGON,
 	SHAPE_TYPE_COUNT
-} shape_type;
-
-typedef struct {
-	shape_type type;	
-	vector_2 position;  /* NOTE: world space coords */
-	vector_2 *vertices; /* NOTE: object space coords */
-} shape;
+};
 
 typedef struct {
 	vector_2 position;
@@ -97,34 +24,25 @@ typedef struct {
 } camera;
 
 typedef struct {
-	shape triangle;
-	shape square;
-	shape diamond;
-	shape trapezoid;
-	shape hexagon;
 	camera game_camera; /* NOTE: world space coords */
+
+	/* TODO: these are gonna be darrays */
+	vector_2 *shape_vertex_list;
+	i32 *shape_adjacency_list;
+	u32 *shape_id_list;
+	i32 *shape_type_list;
+	vector_2 *shape_position_list;
+
+	u32 shape_count; 
+	u32 shape_next_id;
+
 	f64 last_time;
 	f64 time_elapsed;
 	f64 timer;
 	b32 initialized;
 } struct_game_state;
 
-#define GAME_STATE_MEMORY_OFFSET (0)
-
-#define STRING_MEMORY_OFFSET  \
-(GAME_STATE_MEMORY_OFFSET + sizeof(struct_game_state)) 
-
-#define STRING_MEMORY_SIZE 1024
-#define VERTEX_MEMORY_OFFSET \
-(STRING_MEMORY_OFFSET + STRING_MEMORY_SIZE)
-
-/* TODO; this is a totally arbitrary number... */
-/* NOTE: it's enough memory for VERTEX_MEMORY_SIZE / 8 vertices */
-/* e.g. 1024 for VERTEX_MEMORY_SIZE means we can hold 128 vertices */
-#define VERTEX_MEMORY_SIZE 1024 
-#define END_OF_USED_MEMORY_OFFSET \
-(VERTEX_MEMORY_OFFSET + VERTEX_MEMORY_SIZE)
-
+/* NOTE: this goin' be useful for a looong time so keeping it */
 typedef struct {
 	i32 x;
 	i32 y;
@@ -132,58 +50,111 @@ typedef struct {
 	i32 h;
 } struct_aabb;
 
-/* NOTE: this goin' be useful for a looong time so keeping it */
 b32 check_collision_aabb(struct_aabb first, struct_aabb second);
-
-/* TODO: macros */
-static struct_rgba_color red = {255, 0, 0, 0};
-static struct_rgba_color green = {0, 255, 0, 0};
-static struct_rgba_color blue = {0, 0, 255, 0};
-
-static struct_rgba_color magenta = {255, 0, 255, 0};
-static struct_rgba_color cyan = {0, 255, 255, 0};
-static struct_rgba_color yellow = {255, 255, 0, 0};
-static struct_rgba_color orange = {255, 150, 0, 0};
-
-static struct_rgba_color white = {255, 255, 255, 0};
-static struct_rgba_color black = {0, 0, 0, 0};
 
 void game_draw_shape(
 		u8 *pixel_buffer, 
 		u16 buffer_width, 
 		u16 buffer_height, 
-		shape s,
-		camera c,
+		struct_game_state *state,
+		u32 shape_index,
 		struct_rgba_color color);
 
 void game_rotate_shape(
-		shape s,
+		struct_game_state *state,
+		u32 shape_index,
 		f32 radians);
 
-/* NOTE: runs every frame */
+b32 game_add_shape(
+		struct_game_state *state,
+		vector_2 position,
+		i32 shape_type)
+{
+	/* TODO: hardcoded shape maximum */
+	if(state->shape_count < 64)
+	{
+		switch(shape_type)
+		{
+			case SHAPE_TYPE_TRIANGLE:
+			{
+				state->shape_vertex_list[6*state->shape_count].x = 
+					0.0f;
+				state->shape_vertex_list[6*state->shape_count].y =
+					-0.577f;
+				state->shape_vertex_list[6*state->shape_count+1].x =
+					-0.5f;
+				state->shape_vertex_list[6*state->shape_count+1].y = 
+					0.289f;
+				state->shape_vertex_list[6*state->shape_count+2].x = 
+					0.5f;
+				state->shape_vertex_list[6*state->shape_count+2].y = 
+					0.289f;
+				state->shape_type_list[state->shape_count] = 
+					SHAPE_TYPE_TRIANGLE;
+
+				state->shape_position_list[state->shape_count].x = 
+					position.x;
+				state->shape_position_list[state->shape_count].y = 
+					position.y;
+				state->shape_id_list[state->shape_count] = 
+					state->shape_next_id;
+				state->shape_adjacency_list[state->shape_count] = -1;
+				state->shape_adjacency_list[state->shape_count + 1] = -1;
+				state->shape_adjacency_list[state->shape_count + 2] = -1;
+			} break;
+			default:
+			{
+				_assert(0);
+			} break;
+		}
+		state->shape_count++;
+		state->shape_next_id++;
+		return true;
+	}
+	else
+	{
+		LOG_WARN("cannot create more shapes. reached maximum of 64");
+		return false;
+	}
+}
+
 void game_update_and_render(
 		void *game_memory,
 		u64 game_memory_size,
 		u8 *pixel_buffer, 
 		u16 pixel_buffer_width,
 		u16 pixel_buffer_height,
-		x_input_state *input) /* NOTE: passing pointer so as not to 
-									push massive input struct onto stack
-									*/
+		x_input_state *input) 
 {
 	/* memory stuff */
+	u64 jstring_memory_size = 1024;
+	u64 game_state_memory_size = sizeof(struct_game_state);
+	/* NOTE: this will hold 64 shapes' worth of data */
+	u64 shape_vertex_memory_size = 3072;
+	u64 shape_type_memory_size = 1536;
+	u64 shape_adjacency_memory_size = 256;
+	u64 shape_id_memory_size = 256;
+	u64 shape_position_memory_size = 512;
+
+	u64 used_memory = jstring_memory_size + game_state_memory_size +
+		shape_vertex_memory_size + shape_type_memory_size +
+		shape_adjacency_memory_size + shape_id_memory_size + 
+		shape_position_memory_size;
 	_assert(game_memory != 0);
-	_assert(game_memory_size > END_OF_USED_MEMORY_OFFSET)
-	struct_game_state *state = (struct_game_state*)(game_memory + 
-		GAME_STATE_MEMORY_OFFSET);
-	void *string_mem = game_memory + STRING_MEMORY_OFFSET;
-	vector_2 *vertex_data = game_memory + VERTEX_MEMORY_OFFSET;
+	_assert(game_memory_size >= used_memory)
+
+		/* game state */
+	struct_game_state *state = (struct_game_state*)(game_memory); 
+
+		/* set up jstring stuff */
+		/* TODO: store this in game state? or have a game memory struct */
+	void *string_mem = ((char*)game_memory + jstring_memory_size);
 	if(!jstring_load_logging_function(LOG_LIB))
 	{
 		_assert(0);
 	}
 
-	if(!jstring_memory_activate(STRING_MEMORY_SIZE, string_mem))
+	if(!jstring_memory_activate(1024, string_mem))
 	{
 		_assert(0);
 	}
@@ -194,9 +165,15 @@ void game_update_and_render(
 	 */
 	if(!state->initialized)
 	{
+		LOG_DEBUG("game memory addr: %p", game_memory);
+		LOG_DEBUG("game memory size: %u", game_memory_size);
+		LOG_DEBUG("used memory     : %u", used_memory);
+
 		/* state */
-		state->last_time = get_time_ms();
 		state->initialized = true;
+
+			/* time stuff */
+		state->last_time = get_time_ms();
 		state->timer = 0.0;
 
 			/* camera */
@@ -205,79 +182,27 @@ void game_update_and_render(
 		state->game_camera.bounds.x = 16.0f;
 		state->game_camera.bounds.y = 9.0f;
 
-			/* triangle */
-		state->triangle.type = SHAPE_TYPE_TRIANGLE;
-		/* NOTE: world space coords for triangle position */
-		state->triangle.position.x = 0.0f;
-		state->triangle.position.y = 0.0f;
-		/* NOTE: object space coords for triangle vertices */
-		vertex_data[0].x =  0.0f; /* "top" vertex */
-		vertex_data[0].y = -0.433;
-		vertex_data[1].x =  0.5f; /* "right" vertex */
-		vertex_data[1].y =  0.433;
-		vertex_data[2].x = -0.5f; /* "left" vertex */
-		vertex_data[2].y =  0.433;
-		state->triangle.vertices = vertex_data;
+			/* shape data */
+		state->shape_count = 0;
+		state->shape_next_id = 0;
 
-			/* square */
-		state->square.type = SHAPE_TYPE_SQUARE;
-		state->square.position.x = 0.0f;
-		state->square.position.y = 0.0f;
-		vertex_data[3].x =  0.5f;
-		vertex_data[3].y =  0.5f;
-		vertex_data[4].x =  0.5f;
-		vertex_data[4].y = -0.5f;
-		vertex_data[5].x = -0.5f;
-		vertex_data[5].y = -0.5f;
-		vertex_data[6].x = -0.5f;
-		vertex_data[6].y =  0.5f;
-		state->square.vertices = vertex_data + 3;
+		/* TODO: make all of these darrays */
+		state->shape_vertex_list = (vector_2 *)
+			((char*)string_mem + jstring_memory_size);
 
-			/* diamond */
-		state->diamond.type = SHAPE_TYPE_DIAMOND;
-		state->diamond.position.x = 0.0f;
-		state->diamond.position.y = 0.0f;
-		vertex_data[7].x =  0.5f;
-		vertex_data[7].y =  0.0f;
-		vertex_data[8].x =  0.0f;
-		vertex_data[8].y =  0.866f;
-		vertex_data[9].x = -0.5f;
-		vertex_data[9].y =  0.0f;
-		vertex_data[10].x = 0.0f;
-		vertex_data[10].y =-0.866f;
-		state->diamond.vertices = vertex_data + 7;
+		state->shape_adjacency_list = (i32 *)
+			((char*)(state->shape_vertex_list) + 
+			 shape_vertex_memory_size);
 
-			/* trapezoid */
-		state->trapezoid.type = SHAPE_TYPE_TRAPEZOID;
-		state->trapezoid.position.x = 0.0f;
-		state->trapezoid.position.y = 0.0f;
-		vertex_data[11].x = 1.0f;
-		vertex_data[11].y = 0.433f;
-		vertex_data[12].x = 0.5f;
-		vertex_data[12].y =-0.433f;
-		vertex_data[13].x =-0.5f;
-		vertex_data[13].y =-0.433f;
-		vertex_data[14].x =-1.0f;
-		vertex_data[14].y = 0.433f;
-		state->trapezoid.vertices = vertex_data + 11;
+		state->shape_id_list = (u32 *)
+			((char*)(state->shape_adjacency_list) + 
+			shape_adjacency_memory_size);
 
-			/* hexagon */
-		state->hexagon.type = SHAPE_TYPE_HEXAGON;
-		state->hexagon.position.x = 0.0f;
-		state->hexagon.position.y = 0.0f;
-		vertex_data[15].x = 1.0f;
-		vertex_data[15].y = 0.0f;
-		vertex_data[16].x = 0.5f;
-		vertex_data[16].y = 0.866f;
-		vertex_data[17].x =-0.5f;
-		vertex_data[17].y = 0.866f;
-		vertex_data[18].x =-1.0f;
-		vertex_data[18].y = 0.0f;
-		vertex_data[19].x =-0.5f;
-		vertex_data[19].y =-0.866f;
-		vertex_data[20].x = 0.5f;
-		vertex_data[20].y =-0.866f;
-		state->hexagon.vertices = vertex_data + 15;
+		state->shape_type_list = (i32 *)
+			((char*)(state->shape_id_list) + shape_id_memory_size);
+
+		state->shape_position_list = (vector_2 *)
+			((char*)(state->shape_type_list) + shape_type_memory_size);
 
 		LOG_INFO("initialized game state.");
 	}
@@ -292,21 +217,44 @@ void game_update_and_render(
 		jstring_create_temporary(str, jstring_length(str));
 	jstring_to_upper_in_place(&test_string);
 
-	game_rotate_shape(
-		state->triangle,
-		(PI / 256.0f));
-	game_rotate_shape(
-		state->square,
-		(PI / 256.0f));
-	game_rotate_shape(
-		state->diamond,
-		(PI / 256.0f));
-	game_rotate_shape(
-		state->trapezoid,
-		(PI / 256.0f));
-	game_rotate_shape(
-		state->hexagon,
-		(PI / 256.0f));
+	u32 shape_counter;
+	for(
+		shape_counter = 0; 
+		shape_counter < state->shape_count; 
+		shape_counter++)
+	{
+		game_rotate_shape(
+			state,
+			shape_counter,
+		    (PI / 256.0f));
+	}
+
+	if(input->spacebar == INPUT_BUTTON_STATE_PRESSED)
+	{
+		vector_2 world_pos;
+		f32 world_x = ((input->mouse_x) * 
+			((state->game_camera.bounds.x)/pixel_buffer_width)) - 
+			(state->game_camera.bounds.x/2.0f) - 
+			state->game_camera.position.x;
+		f32 world_y = ((input->mouse_y) *
+			((state->game_camera.bounds.y)/pixel_buffer_height)) - 
+			(state->game_camera.bounds.y/2.0f) - 
+			state->game_camera.position.y;
+		world_pos.x = world_x;
+		world_pos.y = world_y;
+
+		if(game_add_shape(
+			state,
+			world_pos,
+			SHAPE_TYPE_TRIANGLE))
+		{
+			LOG_TRACE("created shape at:\n"
+				"mouse: (%u, %u)\n"
+				"shape: (%.2f, %.2f)",
+				(input->mouse_x), (input->mouse_y),
+				world_pos.x, world_pos.y);
+		}
+	}
 
 	/* render */
 	draw_background_in_buffer(
@@ -315,53 +263,26 @@ void game_update_and_render(
 		pixel_buffer_height,
 		black); 
 
-	game_draw_shape(
-		pixel_buffer, 
-		pixel_buffer_width, 
-		pixel_buffer_height, 
-		state->triangle,
-		state->game_camera,
-		green);
-
-	game_draw_shape(
-		pixel_buffer, 
-		pixel_buffer_width, 
-		pixel_buffer_height, 
-		state->square,
-		state->game_camera,
-		orange);
-
-	game_draw_shape(
-		pixel_buffer, 
-		pixel_buffer_width, 
-		pixel_buffer_height, 
-		state->diamond,
-		state->game_camera,
-		blue);
-
-	game_draw_shape(
-		pixel_buffer, 
-		pixel_buffer_width, 
-		pixel_buffer_height, 
-		state->trapezoid,
-		state->game_camera,
-		red);
-
-	game_draw_shape(
-		pixel_buffer, 
-		pixel_buffer_width, 
-		pixel_buffer_height, 
-		state->hexagon,
-		state->game_camera,
-		yellow);
-
+	for(
+		shape_counter = 0; 
+		shape_counter < state->shape_count; 
+		shape_counter++)
+	{
+		game_draw_shape(
+			pixel_buffer, 
+			pixel_buffer_width, 
+			pixel_buffer_height, 
+			state,
+			shape_counter,
+			red);
+	}
 
 	draw_text_in_buffer(
 		pixel_buffer,
 		pixel_buffer_width, 
 		pixel_buffer_height,
 		10, 10, 
-		2,
+		1,
 		test_string,
 		white);
 }
@@ -404,44 +325,48 @@ void game_draw_shape(
 		u8 *pixel_buffer, 
 		u16 buffer_width, 
 		u16 buffer_height, 
-		shape s,
-		camera c,
+		struct_game_state *state,
+		u32 shape_index,
 		struct_rgba_color color)
 {
-	switch(s.type)
+	switch(state->shape_type_list[shape_index])
 	{
 		case SHAPE_TYPE_TRIANGLE:
 		{
 			i32 points[6]; /* NOTE: screen space: x, y, x, y, x, y */
 			vector_2 temp[3]; /* NOTE: for doing transformations */
-			temp[0] = s.vertices[0];
-			temp[1] = s.vertices[1];
-			temp[2] = s.vertices[2];
+			temp[0] = state->shape_vertex_list[6*shape_index];
+			temp[1] = state->shape_vertex_list[6*shape_index+1];
+			temp[2] = state->shape_vertex_list[6*shape_index+2];
 			
 			/* translate to world space by adding shape's position */
 			u32 index;
 			for(index = 0; index < 3; index++)
 			{
-				temp[index].x += s.position.x;
-				temp[index].y += s.position.y;
+				temp[index].x += 
+					state->shape_position_list[shape_index].x;
+				temp[index].y += 
+					state->shape_position_list[shape_index].y;
 			}
 
 			/* translate to camera space by subtracting camera origin */
 			for(index = 0; index < 3; index++)
 			{
-				temp[index].x -= c.position.x;
-				temp[index].y -= c.position.y;
+				temp[index].x -= state->game_camera.position.x;
+				temp[index].y -= state->game_camera.position.y;
 			}
 
 			/* translate to screen space */
 			for(index = 0; index < 3; index++)
 			{
 				points[2*index] = 
-					temp[index].x * (buffer_width/c.bounds.x) + 
-					(buffer_width/2.0f);
+					temp[index].x * 
+						(buffer_width/(state->game_camera.bounds.x)) + 
+							(buffer_width/2.0f);
 				points[2*index+1] = 
-					temp[index].y * (buffer_height/c.bounds.y) + 
-					(buffer_height/2.0f);
+					temp[index].y * 
+						(buffer_height/(state->game_camera.bounds.y)) + 
+							(buffer_height/2.0f);
 			}
 
 			/* draw the shape */
@@ -452,87 +377,6 @@ void game_draw_shape(
 		case SHAPE_TYPE_SQUARE:
 		case SHAPE_TYPE_DIAMOND:
 		case SHAPE_TYPE_TRAPEZOID:
-		{
-			i32 points[8]; 
-			vector_2 temp[4]; 
-			temp[0] = s.vertices[0];
-			temp[1] = s.vertices[1];
-			temp[2] = s.vertices[2];
-			temp[3] = s.vertices[3];
-			
-			/* translate to world space by adding shape's position */
-			u32 index;
-			for(index = 0; index < 4; index++)
-			{
-				temp[index].x += s.position.x;
-				temp[index].y += s.position.y;
-			}
-
-			/* translate to camera space by subtracting camera origin */
-			for(index = 0; index < 4; index++)
-			{
-				temp[index].x -= c.position.x;
-				temp[index].y -= c.position.y;
-			}
-
-			/* translate to screen space */
-			for(index = 0; index < 4; index++)
-			{
-				points[2*index] = 
-					temp[index].x * (buffer_width/c.bounds.x) + 
-					(buffer_width/2.0f);
-				points[2*index+1] = 
-					temp[index].y * (buffer_height/c.bounds.y) + 
-					(buffer_height/2.0f);
-			}
-
-			/* draw the shape */
-			draw_nofill_polygon_in_buffer(
-					pixel_buffer, buffer_width, buffer_height,
-					4, points, color);
-		} break;
-		case SHAPE_TYPE_HEXAGON:
-		{
-			i32 points[12]; 
-			vector_2 temp[6]; 
-			temp[0] = s.vertices[0];
-			temp[1] = s.vertices[1];
-			temp[2] = s.vertices[2];
-			temp[3] = s.vertices[3];
-			temp[4] = s.vertices[4];
-			temp[5] = s.vertices[5];
-			
-			/* translate to world space by adding shape's position */
-			u32 index;
-			for(index = 0; index < 6; index++)
-			{
-				temp[index].x += s.position.x;
-				temp[index].y += s.position.y;
-			}
-
-			/* translate to camera space by subtracting camera origin */
-			for(index = 0; index < 6; index++)
-			{
-				temp[index].x -= c.position.x;
-				temp[index].y -= c.position.y;
-			}
-
-			/* translate to screen space */
-			for(index = 0; index < 6; index++)
-			{
-				points[2*index] = 
-					temp[index].x * (buffer_width/c.bounds.x) + 
-					(buffer_width/2.0f);
-				points[2*index+1] = 
-					temp[index].y * (buffer_height/c.bounds.y) + 
-					(buffer_height/2.0f);
-			}
-
-			/* draw the shape */
-			draw_nofill_polygon_in_buffer(
-					pixel_buffer, buffer_width, buffer_height,
-					6, points, color);
-		} break;
 		default:
 		{
 			_assert(0);
@@ -541,7 +385,8 @@ void game_draw_shape(
 }
 
 void game_rotate_shape(
-		shape s,
+		struct_game_state *state,
+		u32 shape_index,
 		f32 radians)
 {
 	matrix_2x2 rotation_matrix;
@@ -550,7 +395,7 @@ void game_rotate_shape(
 	rotation_matrix.m21 = sin(radians);
 	rotation_matrix.m22 = cos(radians);
 
-	switch(s.type)
+	switch(state->shape_type_list[shape_index])
 	{
 		case SHAPE_TYPE_TRIANGLE: 
 		{
@@ -560,39 +405,15 @@ void game_rotate_shape(
 				/* multiply the triangle's vertices by the rotation
 				 * matrix
 				 */
-				s.vertices[index] = 
+				state->shape_vertex_list[6*shape_index + index] = 
 					multiply_vector_2_by_matrix_2x2(
-						s.vertices[index], rotation_matrix);
+						(state->shape_vertex_list[6*shape_index + index]),
+						rotation_matrix);
 			}
 		} break;
 		case SHAPE_TYPE_SQUARE: 
 		case SHAPE_TYPE_DIAMOND:
 		case SHAPE_TYPE_TRAPEZOID:
-		{
-			u32 index;
-			for(index = 0; index < 4; index++)
-			{
-				/* multiply the triangle's vertices by the rotation
-				 * matrix
-				 */
-				s.vertices[index] = 
-					multiply_vector_2_by_matrix_2x2(
-						s.vertices[index], rotation_matrix);
-			}
-		} break;
-		case SHAPE_TYPE_HEXAGON:
-		{
-			u32 index;
-			for(index = 0; index < 6; index++)
-			{
-				/* multiply the triangle's vertices by the rotation
-				 * matrix
-				 */
-				s.vertices[index] = 
-					multiply_vector_2_by_matrix_2x2(
-						s.vertices[index], rotation_matrix);
-			}
-		} break;
 		default:
 		{
 			_assert(0);

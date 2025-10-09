@@ -187,36 +187,3 @@ i8 timeval_sleep(struct timeval tv)
 	}
 	return true;
 }
-
-/* arenas? */
-typedef struct {
-	void *memory;
-	u64 allocated;
-	u64 size; 
-} struct_memory_arena;
-
-b32 memory_arena_initialize(
-		struct_memory_arena *arena, 
-		void *memory, 
-		u64 size)
-{
-	arena->memory = memory;
-	memset(arena->memory, 0, size);
-	arena->allocated = 0;
-	arena->size = size;
-	return true;
-}
-
-void *memory_arena_allocate(struct_memory_arena *arena, u64 size)
-{
-	if(size + arena->allocated > arena->size)
-	{
-		LOG_WARN("memory_arena_allocate: tried to allocate past end of"
-				" arena\n\tarena size = %u, allocated = %u, attempted"
-				" allocation = %u\nreturning 0.",
-				arena->size, arena->allocated, size);
-		return 0;
-	}
-	arena->allocated+=size;
-	return ((char*)arena->memory + arena->allocated - size);
-}

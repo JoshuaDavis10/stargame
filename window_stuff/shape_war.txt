@@ -116,10 +116,10 @@ Oct 6, 2025
 	NEXT GOAL:
 	be able to render all the different shape war shapes, and rotate
 	them:
-	- square
-	- diamond
-	- trapezoid
-	- hexagon
+	x square
+	x diamond
+	x trapezoid
+	x hexagon
 	- devise some way to store them in memory that makes sense, and
 	code that allows you to easily add more to the "scene"
 		- probably like a dynamic array of vertices that you push
@@ -137,3 +137,28 @@ Oct 6, 2025
 	- getting that stuff working allows us to at least reason about
 	how to do the shape combining code
 
+Oct 9, 2025
+
+	TODO: implement your own sin/cos functions
+	https://www.youtube.com/watch?v=0b68cEY2wKs <- this should help
+	but I don't want to spend 3 hours on this right now 
+
+	Okay, so we need a way to store the shapes/vertices in memory
+	that makes sense and we need to write functions that:
+		1) generate a shape at a location
+		2) delete a shape
+
+	maybe shapes have an ID and we store shapes in a binary tree?
+	maybe shapes are just in a darray and I guess when a shape gets
+		deleted we move shapes above down... but then we'd have to
+		reset any pointers or ID references or whatever to that
+		shape. Time for notebook notes lol
+		once I have a plan I'll type it up here...
+
+	so i just have a bunch of different arrays for the diff shape 
+	data basically. sort of like an ECS I guuuesss
+	anyways I'm currently able to generate shapes but can't delete any
+	yet bc I haven't implemented darrays
+	big step forward tho, having a memory system that makes sense.
+	I'll prob refactor it at some point anywasy tho, it's kinda ugly
+	

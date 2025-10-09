@@ -1,3 +1,5 @@
+#define PI 3.14159265f
+
 typedef struct {
 	f32 x;
 	f32 y;

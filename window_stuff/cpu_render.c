@@ -1,3 +1,5 @@
+#include <string.h> /* for memcpy */
+
 typedef struct {
 	u8 r;
 	u8 g;
@@ -5,7 +7,18 @@ typedef struct {
 	u8 a;
 } struct_rgba_color;
 
-/* TODO: create a .h file for all these as a quick reference */
+/* TODO: macros */
+static struct_rgba_color red = {255, 0, 0, 0};
+static struct_rgba_color green = {0, 255, 0, 0};
+static struct_rgba_color blue = {0, 0, 255, 0};
+
+static struct_rgba_color magenta = {255, 0, 255, 0};
+static struct_rgba_color cyan = {0, 255, 255, 0};
+static struct_rgba_color yellow = {255, 255, 0, 0};
+static struct_rgba_color orange = {255, 150, 0, 0};
+
+static struct_rgba_color white = {255, 255, 255, 0};
+static struct_rgba_color black = {0, 0, 0, 0};
 
 void draw_pixel_in_buffer_rgba(
 		u8 *pixel_buffer,

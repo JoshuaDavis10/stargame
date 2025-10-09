@@ -262,8 +262,9 @@ int main(int argc, char **argv)
 				XCB_GC_FOREGROUND | XCB_GC_BACKGROUND, x_gc_values);
 	LOG_INFO("Set up pixel buffer.");
 
-	x_global_game_memory_size = sysconf(_SC_PAGESIZE);
-	LOG_DEBUG("pagesize: %u", x_global_game_memory_size);
+	u64 pagesize = sysconf(_SC_PAGESIZE);
+	LOG_DEBUG("pagesize: %u", pagesize);
+	x_global_game_memory_size = 2 * pagesize;
 
 	/* NOTE: for some reason MAP_ANONYMOUS was breaking without
 	 * MAP_PRIVATE
@@ -481,11 +482,9 @@ int main(int argc, char **argv)
 
 		dlclose(game_shared_object_handle);
 
-		/*
 		LOG_DEBUG("game_update_and_render took: %us, %dus",
 				update_time.tv_sec,
 				update_time.tv_usec);
-				*/
 
 		post_update_timeval = timeval_get();
 		temp_timeval = 
