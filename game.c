@@ -6,6 +6,8 @@
 #include "math.c"
 #include <math.h> /* cosf, sinf, sqrt TODO write your own versions */
 
+#define MAX_SHAPE_COUNT 512
+
 enum {
 	SHAPE_TYPE_TRIANGLE,
 	SHAPE_TYPE_SQUARE,
@@ -70,8 +72,7 @@ b32 game_add_shape(
 		vector_2 position,
 		i32 shape_type)
 {
-	/* TODO: hardcoded shape maximum */
-	if(state->shape_count < 64)
+	if(state->shape_count < MAX_SHAPE_COUNT)
 	{
 		switch(shape_type)
 		{
@@ -102,6 +103,144 @@ b32 game_add_shape(
 				state->shape_adjacency_list[state->shape_count + 1] = -1;
 				state->shape_adjacency_list[state->shape_count + 2] = -1;
 			} break;
+			case SHAPE_TYPE_SQUARE:
+			{
+				state->shape_vertex_list[6*state->shape_count].x = 
+					0.5f;
+				state->shape_vertex_list[6*state->shape_count].y =
+					0.5f;
+				state->shape_vertex_list[6*state->shape_count+1].x = 
+					0.5f;
+				state->shape_vertex_list[6*state->shape_count+1].y =
+					-0.5f;
+				state->shape_vertex_list[6*state->shape_count+2].x = 
+					-0.5f;
+				state->shape_vertex_list[6*state->shape_count+2].y =
+					-0.5f;
+				state->shape_vertex_list[6*state->shape_count+3].x = 
+					-0.5f;
+				state->shape_vertex_list[6*state->shape_count+3].y =
+					0.5f;
+				state->shape_type_list[state->shape_count] = 
+					SHAPE_TYPE_SQUARE;
+
+				state->shape_position_list[state->shape_count].x = 
+					position.x;
+				state->shape_position_list[state->shape_count].y = 
+					position.y;
+				state->shape_id_list[state->shape_count] = 
+					state->shape_next_id;
+				state->shape_adjacency_list[state->shape_count] = -1;
+				state->shape_adjacency_list[state->shape_count + 1] = -1;
+				state->shape_adjacency_list[state->shape_count + 2] = -1;
+				state->shape_adjacency_list[state->shape_count + 3] = -1;
+			} break;
+			case SHAPE_TYPE_DIAMOND:
+			{
+				state->shape_vertex_list[6*state->shape_count].x = 
+					0.5f;
+				state->shape_vertex_list[6*state->shape_count].y =
+					0.0f;
+				state->shape_vertex_list[6*state->shape_count+1].x = 
+					0.0f;
+				state->shape_vertex_list[6*state->shape_count+1].y =
+					-0.866f;
+				state->shape_vertex_list[6*state->shape_count+2].x = 
+					-0.5f;
+				state->shape_vertex_list[6*state->shape_count+2].y =
+					0.0f;
+				state->shape_vertex_list[6*state->shape_count+3].x = 
+					0.0f;
+				state->shape_vertex_list[6*state->shape_count+3].y =
+					0.866f;
+				state->shape_type_list[state->shape_count] = 
+					SHAPE_TYPE_DIAMOND;
+
+				state->shape_position_list[state->shape_count].x = 
+					position.x;
+				state->shape_position_list[state->shape_count].y = 
+					position.y;
+				state->shape_id_list[state->shape_count] = 
+					state->shape_next_id;
+				state->shape_adjacency_list[state->shape_count] = -1;
+				state->shape_adjacency_list[state->shape_count + 1] = -1;
+				state->shape_adjacency_list[state->shape_count + 2] = -1;
+				state->shape_adjacency_list[state->shape_count + 3] = -1;
+			} break;
+			case SHAPE_TYPE_TRAPEZOID:
+			{
+				state->shape_vertex_list[6*state->shape_count].x = 
+					1.0f;
+				state->shape_vertex_list[6*state->shape_count].y =
+					0.433f;
+				state->shape_vertex_list[6*state->shape_count+1].x = 
+					0.5f;
+				state->shape_vertex_list[6*state->shape_count+1].y =
+					-0.433f;
+				state->shape_vertex_list[6*state->shape_count+2].x = 
+					-0.5f;
+				state->shape_vertex_list[6*state->shape_count+2].y =
+					-0.433f;
+				state->shape_vertex_list[6*state->shape_count+3].x = 
+					-1.0f;
+				state->shape_vertex_list[6*state->shape_count+3].y =
+					0.433f;
+				state->shape_type_list[state->shape_count] = 
+					SHAPE_TYPE_TRAPEZOID;
+
+				state->shape_position_list[state->shape_count].x = 
+					position.x;
+				state->shape_position_list[state->shape_count].y = 
+					position.y;
+				state->shape_id_list[state->shape_count] = 
+					state->shape_next_id;
+				state->shape_adjacency_list[state->shape_count] = -1;
+				state->shape_adjacency_list[state->shape_count + 1] = -1;
+				state->shape_adjacency_list[state->shape_count + 2] = -1;
+				state->shape_adjacency_list[state->shape_count + 3] = -1;
+			} break;
+			case SHAPE_TYPE_HEXAGON:
+			{
+				state->shape_vertex_list[6*state->shape_count].x = 
+					1.0f;
+				state->shape_vertex_list[6*state->shape_count].y =
+					0.0f;
+				state->shape_vertex_list[6*state->shape_count+1].x = 
+					0.5f;
+				state->shape_vertex_list[6*state->shape_count+1].y =
+					-0.866f;
+				state->shape_vertex_list[6*state->shape_count+2].x = 
+					-0.5f;
+				state->shape_vertex_list[6*state->shape_count+2].y =
+					-0.866f;
+				state->shape_vertex_list[6*state->shape_count+3].x = 
+					-1.0f;
+				state->shape_vertex_list[6*state->shape_count+3].y =
+					0.0f;
+				state->shape_vertex_list[6*state->shape_count+4].x = 
+					-0.5f;
+				state->shape_vertex_list[6*state->shape_count+4].y =
+					0.866f;
+				state->shape_vertex_list[6*state->shape_count+5].x = 
+					0.5f;
+				state->shape_vertex_list[6*state->shape_count+5].y =
+					0.866f;
+				state->shape_type_list[state->shape_count] = 
+					SHAPE_TYPE_HEXAGON;
+
+				state->shape_position_list[state->shape_count].x = 
+					position.x;
+				state->shape_position_list[state->shape_count].y = 
+					position.y;
+				state->shape_id_list[state->shape_count] = 
+					state->shape_next_id;
+				state->shape_adjacency_list[state->shape_count] = -1;
+				state->shape_adjacency_list[state->shape_count + 1] = -1;
+				state->shape_adjacency_list[state->shape_count + 2] = -1;
+				state->shape_adjacency_list[state->shape_count + 3] = -1;
+				state->shape_adjacency_list[state->shape_count + 4] = -1;
+				state->shape_adjacency_list[state->shape_count + 5] = -1;
+			} break;
 			default:
 			{
 				_assert(0);
@@ -113,7 +252,8 @@ b32 game_add_shape(
 	}
 	else
 	{
-		LOG_WARN("cannot create more shapes. reached maximum of 64");
+		LOG_WARN("cannot create more shapes. reached maximum of %u",
+				MAX_SHAPE_COUNT);
 		return false;
 	}
 }
@@ -129,12 +269,11 @@ void game_update_and_render(
 	/* memory stuff */
 	u64 jstring_memory_size = 1024;
 	u64 game_state_memory_size = sizeof(struct_game_state);
-	/* NOTE: this will hold 64 shapes' worth of data */
-	u64 shape_vertex_memory_size = 3072;
-	u64 shape_type_memory_size = 1536;
-	u64 shape_adjacency_memory_size = 256;
-	u64 shape_id_memory_size = 256;
-	u64 shape_position_memory_size = 512;
+	u64 shape_vertex_memory_size = 6*sizeof(vector_2)*MAX_SHAPE_COUNT;
+	u64 shape_adjacency_memory_size = 6*sizeof(i32)*MAX_SHAPE_COUNT;
+	u64 shape_type_memory_size = sizeof(i32)*MAX_SHAPE_COUNT;
+	u64 shape_id_memory_size = sizeof(u32)*MAX_SHAPE_COUNT;
+	u64 shape_position_memory_size = sizeof(vector_2)*MAX_SHAPE_COUNT;
 
 	u64 used_memory = jstring_memory_size + game_state_memory_size +
 		shape_vertex_memory_size + shape_type_memory_size +
@@ -223,13 +362,51 @@ void game_update_and_render(
 		shape_counter < state->shape_count; 
 		shape_counter++)
 	{
-		game_rotate_shape(
-			state,
-			shape_counter,
-		    (PI / 256.0f));
+		switch(state->shape_type_list[shape_counter])
+		{
+			case SHAPE_TYPE_TRIANGLE:
+			{
+				game_rotate_shape(
+					state,
+					shape_counter,
+		    		(PI / 200.0f));
+			} break;
+			case SHAPE_TYPE_SQUARE:
+			{
+				game_rotate_shape(
+					state,
+					shape_counter,
+		    		(PI / 220.0f));
+			} break;
+			case SHAPE_TYPE_DIAMOND:
+			{
+				game_rotate_shape(
+					state,
+					shape_counter,
+		    		(PI / 240.0f));
+			} break;
+			case SHAPE_TYPE_TRAPEZOID:
+			{
+				game_rotate_shape(
+					state,
+					shape_counter,
+		    		(PI / 260.0f));
+			} break;
+			case SHAPE_TYPE_HEXAGON:
+			{
+				game_rotate_shape(
+					state,
+					shape_counter,
+		    		(PI / 280.0f));
+			} break;
+			default:
+			{
+				_assert(0);
+			} break;
+		}
 	}
 
-	if(input->spacebar == INPUT_BUTTON_STATE_PRESSED)
+	if(input->letters[16] == INPUT_BUTTON_STATE_PRESSED)
 	{
 		vector_2 world_pos;
 		f32 world_x = ((input->mouse_x) * 
@@ -248,7 +425,111 @@ void game_update_and_render(
 			world_pos,
 			SHAPE_TYPE_TRIANGLE))
 		{
-			LOG_TRACE("created shape at:\n"
+			LOG_TRACE("created triangle at:\n"
+				"mouse: (%u, %u)\n"
+				"shape: (%.2f, %.2f)",
+				(input->mouse_x), (input->mouse_y),
+				world_pos.x, world_pos.y);
+		}
+	}
+	else if(input->letters[22] == INPUT_BUTTON_STATE_PRESSED)
+	{
+		vector_2 world_pos;
+		f32 world_x = ((input->mouse_x) * 
+			((state->game_camera.bounds.x)/pixel_buffer_width)) - 
+			(state->game_camera.bounds.x/2.0f) - 
+			state->game_camera.position.x;
+		f32 world_y = ((input->mouse_y) *
+			((state->game_camera.bounds.y)/pixel_buffer_height)) - 
+			(state->game_camera.bounds.y/2.0f) - 
+			state->game_camera.position.y;
+		world_pos.x = world_x;
+		world_pos.y = world_y;
+
+		if(game_add_shape(
+			state,
+			world_pos,
+			SHAPE_TYPE_SQUARE))
+		{
+			LOG_TRACE("created square at:\n"
+				"mouse: (%u, %u)\n"
+				"shape: (%.2f, %.2f)",
+				(input->mouse_x), (input->mouse_y),
+				world_pos.x, world_pos.y);
+		}
+	}
+	else if(input->letters[4] == INPUT_BUTTON_STATE_PRESSED)
+	{
+		vector_2 world_pos;
+		f32 world_x = ((input->mouse_x) * 
+			((state->game_camera.bounds.x)/pixel_buffer_width)) - 
+			(state->game_camera.bounds.x/2.0f) - 
+			state->game_camera.position.x;
+		f32 world_y = ((input->mouse_y) *
+			((state->game_camera.bounds.y)/pixel_buffer_height)) - 
+			(state->game_camera.bounds.y/2.0f) - 
+			state->game_camera.position.y;
+		world_pos.x = world_x;
+		world_pos.y = world_y;
+
+		if(game_add_shape(
+			state,
+			world_pos,
+			SHAPE_TYPE_DIAMOND))
+		{
+			LOG_TRACE("created diamond at:\n"
+				"mouse: (%u, %u)\n"
+				"shape: (%.2f, %.2f)",
+				(input->mouse_x), (input->mouse_y),
+				world_pos.x, world_pos.y);
+		}
+	}
+	else if(input->letters[17] == INPUT_BUTTON_STATE_PRESSED)
+	{
+		vector_2 world_pos;
+		f32 world_x = ((input->mouse_x) * 
+			((state->game_camera.bounds.x)/pixel_buffer_width)) - 
+			(state->game_camera.bounds.x/2.0f) - 
+			state->game_camera.position.x;
+		f32 world_y = ((input->mouse_y) *
+			((state->game_camera.bounds.y)/pixel_buffer_height)) - 
+			(state->game_camera.bounds.y/2.0f) - 
+			state->game_camera.position.y;
+		world_pos.x = world_x;
+		world_pos.y = world_y;
+
+		if(game_add_shape(
+			state,
+			world_pos,
+			SHAPE_TYPE_TRAPEZOID))
+		{
+			LOG_TRACE("created trapezoid at:\n"
+				"mouse: (%u, %u)\n"
+				"shape: (%.2f, %.2f)",
+				(input->mouse_x), (input->mouse_y),
+				world_pos.x, world_pos.y);
+		}
+	}
+	else if(input->letters[19] == INPUT_BUTTON_STATE_PRESSED)
+	{
+		vector_2 world_pos;
+		f32 world_x = ((input->mouse_x) * 
+			((state->game_camera.bounds.x)/pixel_buffer_width)) - 
+			(state->game_camera.bounds.x/2.0f) - 
+			state->game_camera.position.x;
+		f32 world_y = ((input->mouse_y) *
+			((state->game_camera.bounds.y)/pixel_buffer_height)) - 
+			(state->game_camera.bounds.y/2.0f) - 
+			state->game_camera.position.y;
+		world_pos.x = world_x;
+		world_pos.y = world_y;
+
+		if(game_add_shape(
+			state,
+			world_pos,
+			SHAPE_TYPE_HEXAGON))
+		{
+			LOG_TRACE("created hexagon at:\n"
 				"mouse: (%u, %u)\n"
 				"shape: (%.2f, %.2f)",
 				(input->mouse_x), (input->mouse_y),
@@ -268,13 +549,63 @@ void game_update_and_render(
 		shape_counter < state->shape_count; 
 		shape_counter++)
 	{
-		game_draw_shape(
-			pixel_buffer, 
-			pixel_buffer_width, 
-			pixel_buffer_height, 
-			state,
-			shape_counter,
-			red);
+		switch(state->shape_type_list[shape_counter])
+		{
+			case SHAPE_TYPE_TRIANGLE:
+			{
+				game_draw_shape(
+					pixel_buffer, 
+					pixel_buffer_width, 
+					pixel_buffer_height, 
+					state,
+					shape_counter,
+					magenta);
+			} break;
+			case SHAPE_TYPE_SQUARE:
+			{
+				game_draw_shape(
+					pixel_buffer, 
+					pixel_buffer_width, 
+					pixel_buffer_height, 
+					state,
+					shape_counter,
+					cyan);
+			} break;
+			case SHAPE_TYPE_DIAMOND:
+			{
+				game_draw_shape(
+					pixel_buffer, 
+					pixel_buffer_width, 
+					pixel_buffer_height, 
+					state,
+					shape_counter,
+					yellow);
+			} break;
+			case SHAPE_TYPE_TRAPEZOID:
+			{
+				game_draw_shape(
+					pixel_buffer, 
+					pixel_buffer_width, 
+					pixel_buffer_height, 
+					state,
+					shape_counter,
+					red);
+			} break;
+			case SHAPE_TYPE_HEXAGON:
+			{
+				game_draw_shape(
+					pixel_buffer, 
+					pixel_buffer_width, 
+					pixel_buffer_height, 
+					state,
+					shape_counter,
+					blue);
+			} break;
+			default:
+			{
+				_assert(0);
+			} break;
+		}
 	}
 
 	draw_text_in_buffer(
@@ -377,6 +708,95 @@ void game_draw_shape(
 		case SHAPE_TYPE_SQUARE:
 		case SHAPE_TYPE_DIAMOND:
 		case SHAPE_TYPE_TRAPEZOID:
+		{
+			i32 points[8]; /* NOTE: screen space: x, y, x, y, x, y */
+			vector_2 temp[4]; /* NOTE: for doing transformations */
+			temp[0] = state->shape_vertex_list[6*shape_index];
+			temp[1] = state->shape_vertex_list[6*shape_index+1];
+			temp[2] = state->shape_vertex_list[6*shape_index+2];
+			temp[3] = state->shape_vertex_list[6*shape_index+3];
+			
+			/* translate to world space by adding shape's position */
+			u32 index;
+			for(index = 0; index < 4; index++)
+			{
+				temp[index].x += 
+					state->shape_position_list[shape_index].x;
+				temp[index].y += 
+					state->shape_position_list[shape_index].y;
+			}
+
+			/* translate to camera space by subtracting camera origin */
+			for(index = 0; index < 4; index++)
+			{
+				temp[index].x -= state->game_camera.position.x;
+				temp[index].y -= state->game_camera.position.y;
+			}
+
+			/* translate to screen space */
+			for(index = 0; index < 4; index++)
+			{
+				points[2*index] = 
+					temp[index].x * 
+						(buffer_width/(state->game_camera.bounds.x)) + 
+							(buffer_width/2.0f);
+				points[2*index+1] = 
+					temp[index].y * 
+						(buffer_height/(state->game_camera.bounds.y)) + 
+							(buffer_height/2.0f);
+			}
+
+			/* draw the shape */
+			draw_nofill_polygon_in_buffer(
+					pixel_buffer, buffer_width, buffer_height,
+					4, points, color);
+		} break;
+		case SHAPE_TYPE_HEXAGON:
+		{
+			i32 points[12]; /* NOTE: screen space: x, y, x, y, x, y */
+			vector_2 temp[6]; /* NOTE: for doing transformations */
+			temp[0] = state->shape_vertex_list[6*shape_index];
+			temp[1] = state->shape_vertex_list[6*shape_index+1];
+			temp[2] = state->shape_vertex_list[6*shape_index+2];
+			temp[3] = state->shape_vertex_list[6*shape_index+3];
+			temp[4] = state->shape_vertex_list[6*shape_index+4];
+			temp[5] = state->shape_vertex_list[6*shape_index+5];
+			
+			/* translate to world space by adding shape's position */
+			u32 index;
+			for(index = 0; index < 6; index++)
+			{
+				temp[index].x += 
+					state->shape_position_list[shape_index].x;
+				temp[index].y += 
+					state->shape_position_list[shape_index].y;
+			}
+
+			/* translate to camera space by subtracting camera origin */
+			for(index = 0; index < 6; index++)
+			{
+				temp[index].x -= state->game_camera.position.x;
+				temp[index].y -= state->game_camera.position.y;
+			}
+
+			/* translate to screen space */
+			for(index = 0; index < 6; index++)
+			{
+				points[2*index] = 
+					temp[index].x * 
+						(buffer_width/(state->game_camera.bounds.x)) + 
+							(buffer_width/2.0f);
+				points[2*index+1] = 
+					temp[index].y * 
+						(buffer_height/(state->game_camera.bounds.y)) + 
+							(buffer_height/2.0f);
+			}
+
+			/* draw the shape */
+			draw_nofill_polygon_in_buffer(
+					pixel_buffer, buffer_width, buffer_height,
+					6, points, color);
+		} break;
 		default:
 		{
 			_assert(0);
@@ -414,6 +834,33 @@ void game_rotate_shape(
 		case SHAPE_TYPE_SQUARE: 
 		case SHAPE_TYPE_DIAMOND:
 		case SHAPE_TYPE_TRAPEZOID:
+		{
+			u32 index;
+			for(index = 0; index < 4; index++)
+			{
+				/* multiply the triangle's vertices by the rotation
+				 * matrix
+				 */
+				state->shape_vertex_list[6*shape_index + index] = 
+					multiply_vector_2_by_matrix_2x2(
+						(state->shape_vertex_list[6*shape_index + index]),
+						rotation_matrix);
+			}
+		} break;
+		case SHAPE_TYPE_HEXAGON:
+		{
+			u32 index;
+			for(index = 0; index < 6; index++)
+			{
+				/* multiply the triangle's vertices by the rotation
+				 * matrix
+				 */
+				state->shape_vertex_list[6*shape_index + index] = 
+					multiply_vector_2_by_matrix_2x2(
+						(state->shape_vertex_list[6*shape_index + index]),
+						rotation_matrix);
+			}
+		} break;
 		default:
 		{
 			_assert(0);

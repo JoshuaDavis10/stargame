@@ -40,6 +40,7 @@ static x_input_state x_global_old_input_state = {0};
 static x_input_state x_global_game_input_state = {0};
 static void *x_global_game_memory_ptr;
 static u64 x_global_game_memory_size;
+static f64 x_global_timer = 0.0;
 
 void x_generate_game_input()
 {
@@ -264,7 +265,7 @@ int main(int argc, char **argv)
 
 	u64 pagesize = sysconf(_SC_PAGESIZE);
 	LOG_DEBUG("pagesize: %u", pagesize);
-	x_global_game_memory_size = 2 * pagesize;
+	x_global_game_memory_size = 16 * pagesize;
 
 	/* NOTE: for some reason MAP_ANONYMOUS was breaking without
 	 * MAP_PRIVATE
@@ -305,6 +306,7 @@ int main(int argc, char **argv)
 	start_timeval = timeval_get();
 	while(x_running) 
 	{
+		f64 start_time_ms = get_time_ms();
 
 		/* get all the events that happened since last loop */
 		while((x_event = xcb_poll_for_event(x_connection))) {
@@ -482,9 +484,14 @@ int main(int argc, char **argv)
 
 		dlclose(game_shared_object_handle);
 
-		LOG_DEBUG("game_update_and_render took: %us, %dus",
+		if(x_global_timer > 2000.0)
+		{
+			LOG_DEBUG("Periodic 2-second snapshot - "
+					"game_update_and_render took: %us, %dus",
 				update_time.tv_sec,
 				update_time.tv_usec);
+			x_global_timer = 0.0;
+		}
 
 		post_update_timeval = timeval_get();
 		temp_timeval = 
@@ -508,6 +515,8 @@ int main(int argc, char **argv)
 		timeval_sleep(temp_timeval); /* NOTE: wait remaining time 
 											to present frame */
 		end_timeval = timeval_get();
+		f64 end_time_ms = get_time_ms();
+		x_global_timer += (end_time_ms - start_time_ms);
 		temp_timeval = 
 			timeval_get_difference(
 					end_timeval, start_timeval, 0);
