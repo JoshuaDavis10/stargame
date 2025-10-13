@@ -537,6 +537,11 @@ void game_update_and_render(
 		}
 	}
 
+	if(input->spacebar == INPUT_BUTTON_STATE_PRESSED)
+	{
+		state->shape_count = 0;
+	}
+
 	/* render */
 	draw_background_in_buffer(
 		pixel_buffer,
