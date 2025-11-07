@@ -36,6 +36,146 @@ void draw_pixel_in_buffer_rgba(
 		}
 }
 
+void draw_triangles_in_buffer(
+	u8 *pixel_buffer,
+	u16 buffer_width,
+	u16 buffer_height,
+	camera cam,
+	vector_2 *vertex_list,
+	u32 vertex_count)
+{
+	/* TODO: loop for each pixel in the bounding box 
+	 * - get max/min x/y
+	 * - loop through those ^
+	 * - if det(v1 - v0, P - v0) > 0, then we are to "left" of edge, I guess depending on
+	 *   coord system (v1 - v0 FOR each vertex)
+	 */
+	vertex_count = vertex_count - (vertex_count % 3);
+	f32 max_x;
+	f32 max_y;
+	f32 min_x;
+	f32 min_y;
+
+	vector_2 v0;
+	vector_2 v1;
+	vector_2 v2;
+
+	u32 vertex_index = 0;
+	for( ; vertex_index < vertex_count; vertex_index+=3)
+	{
+		v0 = vertex_list[vertex_index];	
+		v1 = vertex_list[vertex_index + 1];	
+		v2 = vertex_list[vertex_index + 2];	
+
+		/* screen coords */
+		f32 temp_x;
+		f32 temp_y;
+
+		temp_x = v0.x - cam.position.x;
+		temp_y = v0.y - cam.position.y;
+		v0.x = temp_x * (buffer_width/(cam.bounds.x)) + (buffer_width/2.0f);
+		v0.y = temp_y * (buffer_height/(cam.bounds.y)) + (buffer_height/2.0f);
+		temp_x = v1.x - cam.position.x;
+		temp_y = v1.y - cam.position.y;
+		v1.x = temp_x * (buffer_width/(cam.bounds.x)) + (buffer_width/2.0f);
+		v1.y = temp_y * (buffer_height/(cam.bounds.y)) + (buffer_height/2.0f);
+		temp_x = v2.x - cam.position.x;
+		temp_y = v2.y - cam.position.y;
+		v2.x = temp_x * (buffer_width/(cam.bounds.x)) + (buffer_width/2.0f);
+		v2.y = temp_y * (buffer_height/(cam.bounds.y)) + (buffer_height/2.0f);
+
+		/* get max/min */
+		max_x = v0.x;
+		if(v1.x > max_x) { max_x = v1.x; }
+		if(v2.x > max_x) { max_x = v2.x; }
+		min_x = v0.x;
+		if(v1.x < min_x) { min_x = v1.x; }
+		if(v2.x < max_x) { min_x = v2.x; }
+		max_y = v0.y;
+		if(v1.y > max_y) { max_y = v1.y; }
+		if(v2.y > max_y) { max_y = v2.y; }
+		min_y = v0.y;
+		if(v1.y < min_y) { min_y = v1.y; }
+		if(v2.y < min_y) { min_y = v2.y; }
+
+		i32 aabb_min_x = (i32)min_x;
+		i32 aabb_min_y = (i32)min_y;
+		i32 aabb_max_x = (i32)max_x;
+		i32 aabb_max_y = (i32)max_y;
+
+		i32 x = aabb_min_x;
+		i32 y = aabb_min_y;
+
+		vector_2 from;
+		vector_2 point;
+		vector_2 start_to_point; 
+		vector_2 edge;
+		vector_2 edge_start;
+		vector_2 edge_end;
+		f32 det;
+
+		for( ; x < aabb_max_x; x++)
+		{
+			if(x < 0.0f || x > (f32)buffer_width)
+			{
+				continue;
+			}
+			for(y = aabb_min_y ; y < aabb_max_y; y++)
+			{
+				if(y < 0.0f || y > (f32)buffer_height)
+				{
+					continue;
+				}
+				point.x = (f32)x;
+				point.y = (f32)y;
+
+				edge_start = v0;
+				edge_end = v1;
+				edge = sub_vec2(edge_end, edge_start);
+				start_to_point = sub_vec2(point, edge_start);
+				det = det_2x2_from_vectors(edge, start_to_point);
+				if(det < 0.0f)
+				{
+					/* don't color the pixel */
+					continue;
+				}
+
+				edge_start = v1;
+				edge_end = v2;
+				edge = sub_vec2(edge_end, edge_start);
+				start_to_point = sub_vec2(point, edge_start);
+				det = det_2x2_from_vectors(edge, start_to_point);
+				if(det < 0.0f)
+				{
+					/* don't color the pixel */
+					continue;
+				}
+
+				edge_start = v2;
+				edge_end = v0;
+				edge = sub_vec2(edge_end, edge_start);
+				start_to_point = sub_vec2(point, edge_start);
+				det = det_2x2_from_vectors(edge, start_to_point);
+				if(det < 0.0f)
+				{
+					/* don't color the pixel */
+					continue;
+				}
+
+				/* color the pixel */
+				u32 pixel = y * buffer_width + x;
+				draw_pixel_in_buffer_rgba(
+					pixel_buffer, 
+					buffer_width, 
+					buffer_height,
+					pixel,
+					red);
+			}
+		}
+
+	}
+}
+
 void draw_background_in_buffer(
 		u8 *pixel_buffer,
 		u16 buffer_width, 

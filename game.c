@@ -2,8 +2,17 @@
 
 #include "util.c"
 #include "jstring.h"
-#include "cpu_render.c"
 #include "math.c"
+
+typedef struct {
+	vector_2 position;
+	/* NOTE: -x and +x maximums + -y and +y maximums for camera coords 
+	 * that will actually be drawn 
+	 */
+	vector_2 bounds; 
+} camera;
+
+#include "cpu_render.c"
 #include <math.h> /* cosf, sinf, sqrt TODO write your own versions */
 
 #define MAX_SHAPE_COUNT 512
@@ -16,14 +25,6 @@ enum {
 	SHAPE_TYPE_HEXAGON,
 	SHAPE_TYPE_COUNT
 };
-
-typedef struct {
-	vector_2 position;
-	/* NOTE: -x and +x maximums + -y and +y maximums for camera coords 
-	 * that will actually be drawn 
-	 */
-	vector_2 bounds; 
-} camera;
 
 typedef struct {
 	camera game_camera; /* NOTE: world space coords */
@@ -612,6 +613,22 @@ void game_update_and_render(
 			} break;
 		}
 	}
+
+	vector_2 vertices[6] = {
+		{1.0f, 1.0f},
+		{2.0f, 1.0f},
+		{2.0f, 2.0f},
+		{1.0f, 1.0f},
+		{2.0f, 2.0f},
+		{1.0f, 2.0f}
+	};
+	draw_triangles_in_buffer(
+		pixel_buffer,
+		pixel_buffer_width,
+		pixel_buffer_height,
+		state->game_camera,
+		vertices,
+		6);
 
 	draw_text_in_buffer(
 		pixel_buffer,

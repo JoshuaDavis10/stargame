@@ -508,7 +508,10 @@ int main(int argc, char **argv)
 					frame_timeval, temp_timeval, &success);
 		if(!success)
 		{
-			LOG_WARN("Dropped frame.");
+			LOG_WARN("Dropped frame. "
+					"game_update_and_render took: %us, %dus",
+				update_time.tv_sec,
+				update_time.tv_usec);
 			start_timeval = timeval_get();
 			continue;
 		}
