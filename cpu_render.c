@@ -25,6 +25,8 @@ static vector_4 cyan4 = {0.0f, 1.0f, 1.0f, 0.0f};
 static vector_4 yellow4 = {1.0f, 1.0f, 0.0f, 0.0f};
 static vector_4 magenta4 = {1.0f, 0.0f, 1.0f, 0.0f};
 static vector_4 orange4 = {1.0f, 0.5f, 0.0f, 0.0f};
+static vector_4 white4 = {1.0f, 1.0f, 1.0f, 0.0f};
+static vector_4 black4 = {0.0f, 0.0f, 0.0f, 0.0f};
 
 void draw_pixel_in_buffer_rgba(
 		u8 *pixel_buffer,

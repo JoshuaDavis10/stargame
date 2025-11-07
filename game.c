@@ -620,16 +620,17 @@ void game_update_and_render(
 		{0.5f, -0.5f},
 		{0.5f, -0.5f},
 		{-0.5f, 0.5f},
-		{-0.5f, -0.5f}
+		{-0.5f, -0.5f},
 	};
 	vector_4 colors[6]; 
 	colors[0] = cyan4;
 	colors[1] = magenta4;
-	colors[2] = orange4;
-	colors[3] = orange4;
+	colors[2] = black4;
+	colors[3] = black4;
 	colors[4] = magenta4;
 	colors[5] = yellow4;
 
+	f64 before = get_time_ms();
 	draw_triangles_in_buffer(
 		pixel_buffer,
 		pixel_buffer_width,
@@ -638,6 +639,13 @@ void game_update_and_render(
 		vertices,
 		colors,
 		6);
+	f64 after = get_time_ms();
+	if(state->timer > 2000.0)
+	{
+		LOG_DEBUG("draw_triangles_in_buffer took: %.4lfms", 
+				after - before);
+		state->timer = 0.0;
+	}
 
 	draw_text_in_buffer(
 		pixel_buffer,

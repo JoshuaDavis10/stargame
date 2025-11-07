@@ -7,7 +7,7 @@
 #include <sys/mman.h> /* mmap */
 #include <dlfcn.h> /* dlopen dlsym dlclose */
 
-#define FRAME_RATE (60.0f)
+#define FRAME_RATE (30.0f)
 #define FRAME_TIME (1.0f/FRAME_RATE)
 
 typedef uint8_t u8;
