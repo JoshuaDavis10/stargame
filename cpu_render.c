@@ -19,6 +19,12 @@ static struct_rgba_color orange = {255, 150, 0, 0};
 
 static struct_rgba_color white = {255, 255, 255, 0};
 static struct_rgba_color black = {0, 0, 0, 0};
+static struct_rgba_color gray = {40, 40, 40, 40};
+
+static vector_4 cyan4 = {0.0f, 1.0f, 1.0f, 0.0f};
+static vector_4 yellow4 = {1.0f, 1.0f, 0.0f, 0.0f};
+static vector_4 magenta4 = {1.0f, 0.0f, 1.0f, 0.0f};
+static vector_4 orange4 = {1.0f, 0.5f, 0.0f, 0.0f};
 
 void draw_pixel_in_buffer_rgba(
 		u8 *pixel_buffer,
@@ -36,20 +42,31 @@ void draw_pixel_in_buffer_rgba(
 		}
 }
 
+void draw_pixel_in_buffer_vec4(
+		u8 *pixel_buffer,
+		u16 buffer_width,
+		u16 buffer_height,
+		u32 pixel,
+		vector_4 color)
+{
+		if(pixel < buffer_width * buffer_height)
+		{
+			pixel_buffer[4*pixel] =   (u8)(255.0f * color.z);
+			pixel_buffer[4*pixel+1] = (u8)(255.0f * color.y);
+			pixel_buffer[4*pixel+2] = (u8)(255.0f * color.x);
+			pixel_buffer[4*pixel+3] = (u8)(255.0f * color.w);
+		}
+}
+
 void draw_triangles_in_buffer(
 	u8 *pixel_buffer,
 	u16 buffer_width,
 	u16 buffer_height,
 	camera cam,
-	vector_2 *vertex_list,
+	vector_2 *vertex_positions,
+	vector_4 *vertex_colors,	
 	u32 vertex_count)
 {
-	/* TODO: loop for each pixel in the bounding box 
-	 * - get max/min x/y
-	 * - loop through those ^
-	 * - if det(v1 - v0, P - v0) > 0, then we are to "left" of edge, I guess depending on
-	 *   coord system (v1 - v0 FOR each vertex)
-	 */
 	vertex_count = vertex_count - (vertex_count % 3);
 	f32 max_x;
 	f32 max_y;
@@ -60,12 +77,20 @@ void draw_triangles_in_buffer(
 	vector_2 v1;
 	vector_2 v2;
 
+	vector_4 c0;
+	vector_4 c1;
+	vector_4 c2;
+
 	u32 vertex_index = 0;
 	for( ; vertex_index < vertex_count; vertex_index+=3)
 	{
-		v0 = vertex_list[vertex_index];	
-		v1 = vertex_list[vertex_index + 1];	
-		v2 = vertex_list[vertex_index + 2];	
+		v0 = vertex_positions[vertex_index];	
+		v1 = vertex_positions[vertex_index + 1];	
+		v2 = vertex_positions[vertex_index + 2];	
+
+		c0 = vertex_colors[vertex_index];
+		c1 = vertex_colors[vertex_index + 1];
+		c2 = vertex_colors[vertex_index + 2];
 
 		/* screen coords */
 		f32 temp_x;
@@ -112,67 +137,63 @@ void draw_triangles_in_buffer(
 		vector_2 edge;
 		vector_2 edge_start;
 		vector_2 edge_end;
-		f32 det;
-
+		f32 det01p;
+		f32 det12p;
+		f32 det20p;
 		for( ; x < aabb_max_x; x++)
 		{
-			if(x < 0.0f || x > (f32)buffer_width)
+			if(x < 0 || x >= buffer_width)
 			{
 				continue;
 			}
 			for(y = aabb_min_y ; y < aabb_max_y; y++)
 			{
-				if(y < 0.0f || y > (f32)buffer_height)
+				if(y < 0 || y >= buffer_height)
 				{
 					continue;
 				}
 				point.x = (f32)x;
 				point.y = (f32)y;
 
-				edge_start = v0;
-				edge_end = v1;
-				edge = sub_vec2(edge_end, edge_start);
-				start_to_point = sub_vec2(point, edge_start);
-				det = det_2x2_from_vectors(edge, start_to_point);
-				if(det < 0.0f)
-				{
-					/* don't color the pixel */
-					continue;
-				}
+				edge = sub_vec2(v1, v0);
+				start_to_point = sub_vec2(point, v0);
+				det01p = det_2x2_from_vectors(edge, start_to_point);
 
-				edge_start = v1;
-				edge_end = v2;
-				edge = sub_vec2(edge_end, edge_start);
-				start_to_point = sub_vec2(point, edge_start);
-				det = det_2x2_from_vectors(edge, start_to_point);
-				if(det < 0.0f)
-				{
-					/* don't color the pixel */
-					continue;
-				}
+				edge = sub_vec2(v2, v1);
+				start_to_point = sub_vec2(point, v1);
+				det12p = det_2x2_from_vectors(edge, start_to_point);
 
-				edge_start = v2;
-				edge_end = v0;
-				edge = sub_vec2(edge_end, edge_start);
-				start_to_point = sub_vec2(point, edge_start);
-				det = det_2x2_from_vectors(edge, start_to_point);
-				if(det < 0.0f)
-				{
-					/* don't color the pixel */
-					continue;
-				}
+				edge = sub_vec2(v0, v2);
+				start_to_point = sub_vec2(point, v2);
+				det20p = det_2x2_from_vectors(edge, start_to_point);
 
-				/* color the pixel */
-				u32 pixel = y * buffer_width + x;
-				draw_pixel_in_buffer_rgba(
-					pixel_buffer, 
-					buffer_width, 
-					buffer_height,
-					pixel,
-					red);
+				if(det01p >= 0.0f && det12p >= 0.0f && det20p >= 0.0f)
+				{
+
+					f32 det012 = det_2x2_from_vectors( sub_vec2(v1, v0), sub_vec2(v2, v0) );
+
+					f32 lambda0 = det12p / det012;
+					f32 lambda1 = det20p / det012;
+					f32 lambda2 = det01p / det012;
+
+					vector_4 c0part = mult_vec4_by_const(lambda0, c0);
+					vector_4 c1part = mult_vec4_by_const(lambda1, c1);
+					vector_4 c2part = mult_vec4_by_const(lambda2, c2);
+
+					vector_4 color = add_vec4(c0part, c1part);
+					color = add_vec4(color, c2part);
+
+					/* color the pixel */
+					u32 pixel = y * buffer_width + x;
+					draw_pixel_in_buffer_vec4(
+						pixel_buffer, 
+						buffer_width, 
+						buffer_height,
+						pixel,
+						color);
+				}
 			}
 		}
-
 	}
 }
 

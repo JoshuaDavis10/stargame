@@ -9,6 +9,13 @@ typedef struct {
 } vector_2;
 
 typedef struct {
+	f32 x;
+	f32 y;
+	f32 z;
+	f32 w;
+} vector_4;
+
+typedef struct {
 	f32 m11;
 	f32 m12;
 	f32 m21;
@@ -35,15 +42,36 @@ vector_2 sub_vec2(vector_2 vec1, vector_2 vec2)
 	return result;
 }
 
-f32 det_2x2_from_vectors(vector_2 c1, vector_2 c2)
+vector_2 add_vec2(vector_2 vec1, vector_2 vec2)
 {
-	f32 result = (c1.x * c2.y) - (c2.x * c1.y);
+	vector_2 result;
+	result.x = vec1.x + vec2.x;
+	result.y = vec1.y + vec2.y;
 	return result;
 }
 
-f32 det_2x2_from_matrix(matrix_2x2)
+vector_4 add_vec4(vector_4 vec1, vector_4 vec2)
 {
-	f32 result = 0.0f;
-	/* TODO: */
+	vector_4 result;
+	result.x = vec1.x + vec2.x;
+	result.y = vec1.y + vec2.y;
+	result.z = vec1.z + vec2.z;
+	result.w = vec1.w + vec2.w;
+	return result;
+}
+
+vector_4 mult_vec4_by_const(f32 c, vector_4 vec)
+{
+	vector_4 result;
+	result.x = vec.x * c;
+	result.y = vec.y * c;
+	result.z = vec.z * c;
+	result.w = vec.w * c;
+	return result;
+}
+
+f32 det_2x2_from_vectors(vector_2 c1, vector_2 c2)
+{
+	f32 result = (c1.x * c2.y) - (c2.x * c1.y);
 	return result;
 }

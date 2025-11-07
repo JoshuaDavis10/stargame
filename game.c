@@ -548,7 +548,7 @@ void game_update_and_render(
 		pixel_buffer,
 		pixel_buffer_width, 
 		pixel_buffer_height,
-		black); 
+		gray); 
 
 	for(
 		shape_counter = 0; 
@@ -615,19 +615,28 @@ void game_update_and_render(
 	}
 
 	vector_2 vertices[6] = {
-		{1.0f, 1.0f},
-		{2.0f, 1.0f},
-		{2.0f, 2.0f},
-		{1.0f, 1.0f},
-		{2.0f, 2.0f},
-		{1.0f, 2.0f}
+		{0.5f, 0.5f},
+		{-0.5f, 0.5f},
+		{0.5f, -0.5f},
+		{0.5f, -0.5f},
+		{-0.5f, 0.5f},
+		{-0.5f, -0.5f}
 	};
+	vector_4 colors[6]; 
+	colors[0] = cyan4;
+	colors[1] = magenta4;
+	colors[2] = orange4;
+	colors[3] = orange4;
+	colors[4] = magenta4;
+	colors[5] = yellow4;
+
 	draw_triangles_in_buffer(
 		pixel_buffer,
 		pixel_buffer_width,
 		pixel_buffer_height,
 		state->game_camera,
 		vertices,
+		colors,
 		6);
 
 	draw_text_in_buffer(
