@@ -7,8 +7,6 @@
 #include <sys/mman.h> /* mmap */
 #include <dlfcn.h> /* dlopen dlsym dlclose */
 
-#define FRAME_RATE (30.0f)
-#define FRAME_TIME (1.0f/FRAME_RATE)
 
 typedef uint8_t u8;
 typedef uint16_t u16;
@@ -30,6 +28,9 @@ typedef double f64;
 
 #include "util.c"
 #include "xcb_input.c" /* NOTE: my xcb input utils file */
+
+#define FRAME_RATE (60.0)
+#define FRAME_TIME (u64)((1.0/FRAME_RATE) * (f64)MICROSECS_PER_SEC) /* microseconds */
 
 /* TODO: platform state struct */
 static x_keymap_info x_global_keymap_info = {0};
@@ -64,7 +65,7 @@ int main(int argc, char **argv)
 {
 	/*variable to hold pointer to server connection*/
 	xcb_connection_t *x_connection;
-	xcb_screen_t *x_screen; /*pointer to first screen*/
+	xcb_screen_t *x_screen = 0; /*pointer to first screen*/
 	const xcb_setup_t *x_setup;
 	i32 x_screen_number; /*NOTE: I don't exactly understand this value rn*/
 	xcb_screen_iterator_t x_screen_iterator; /*used to iterate over the 
@@ -100,6 +101,7 @@ int main(int argc, char **argv)
 			break;
 		}
 	}
+	_assert(x_screen);
 	x_global_window_width = x_screen->width_in_pixels;
 	x_global_window_height = x_screen->height_in_pixels;
 
@@ -288,25 +290,13 @@ int main(int argc, char **argv)
 		return(1);
 	}
 
-
 	xcb_generic_event_t *x_event = 0;
 	char x_running = 1;
 
-	/* NOTE: temp for timing */
-	struct timeval start_timeval;
-	struct timeval end_timeval;
-	struct timeval post_update_timeval;
-	struct timeval temp_timeval;
-	struct timeval frame_timeval;
-	frame_timeval.tv_sec = 0;
-	frame_timeval.tv_usec = FRAME_TIME * 1000000;
-
-	LOG_INFO("Starting render loop...");
-
-	start_timeval = timeval_get();
+	u64 frame_start_time_us = read_os_timer();
+	u64 frame_end_time_us = 0;
 	while(x_running) 
 	{
-		f64 start_time_ms = get_time_ms();
 
 		/* get all the events that happened since last loop */
 		while((x_event = xcb_poll_for_event(x_connection))) {
@@ -443,9 +433,7 @@ int main(int argc, char **argv)
 
 		x_generate_game_input();
 
-		struct timeval before_update = timeval_get();
-
-		struct timeval time_before_load = timeval_get();
+		/* load game code */
 		void *game_shared_object_handle = dlopen("./libgame.so", RTLD_NOW);
 		if(!game_shared_object_handle)
 		{
@@ -460,15 +448,8 @@ int main(int argc, char **argv)
 			LOG_ERROR("dlsym: %s", dlerror());
 		}
 		_assert(game_update_and_render);
-		struct timeval time_after_load = timeval_get();
-		struct timeval load_time = 
-			timeval_get_difference(
-					time_after_load, time_before_load, 0);
-		/*
-		LOG_DEBUG("loading game code took: %us, %dus", 
-				load_time.tv_sec, load_time.tv_usec);
-				*/
 
+		/* run game code */
 		game_update_and_render(
 				x_global_game_memory_ptr,
 				x_global_game_memory_size,
@@ -477,55 +458,23 @@ int main(int argc, char **argv)
 				x_global_window_height,
 	    			&x_global_game_input_state);
 
-		struct timeval after_update = timeval_get();
-		struct timeval update_time =
-			timeval_get_difference(
-					after_update, before_update, 0);
-
 		dlclose(game_shared_object_handle);
 
-		if(x_global_timer > 2000.0)
+		frame_end_time_us = read_os_timer();
+		u64 elapsed = frame_end_time_us - frame_start_time_us;
+		if(elapsed > FRAME_TIME)
 		{
-			LOG_DEBUG("Periodic 2-second snapshot - "
-					"game_update_and_render took: %us, %dus",
-				update_time.tv_sec,
-				update_time.tv_usec);
-			x_global_timer = 0.0;
-		}
-
-		post_update_timeval = timeval_get();
-		temp_timeval = 
-			timeval_get_difference(
-					post_update_timeval, start_timeval, 0);
-		/*
-		LOG_DEBUG("Time taken for frame update: %us, %dus",
-				temp_timeval.tv_sec,
-				temp_timeval.tv_usec);
-				*/
-		b32 success = true;
-		temp_timeval = 
-			timeval_get_difference(
-					frame_timeval, temp_timeval, &success);
-		if(!success)
-		{
-			LOG_WARN("Dropped frame. "
-					"game_update_and_render took: %us, %dus",
-				update_time.tv_sec,
-				update_time.tv_usec);
-			start_timeval = timeval_get();
+			LOG_WARN("dropped frame (%llu microseconds spent this frame | frame time goal: %llu).",
+				elapsed, FRAME_TIME);
+			frame_start_time_us = read_os_timer();
 			continue;
 		}
-		timeval_sleep(temp_timeval); /* NOTE: wait remaining time 
-											to present frame */
-		end_timeval = timeval_get();
-		f64 end_time_ms = get_time_ms();
-		x_global_timer += (end_time_ms - start_time_ms);
-		temp_timeval = 
-			timeval_get_difference(
-					end_timeval, start_timeval, 0);
-		start_timeval = timeval_get();
 
-		/* NOTE: present frame */
+		usleep(FRAME_TIME - elapsed);
+
+		frame_start_time_us = read_os_timer();
+
+		/* present frame */
 		xcb_put_image(
 				x_connection,
 				XCB_IMAGE_FORMAT_Z_PIXMAP,

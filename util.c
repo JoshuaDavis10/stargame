@@ -5,10 +5,10 @@
 #define MAX_LOGGER_MESSAGE_SIZE 16384
 
 #define LOGGER_ERROR_ENABLED 1
-#define LOGGER_WARN_ENABLED 1
-#define LOGGER_INFO_ENABLED 1
-#define LOGGER_DEBUG_ENABLED 1
-#define LOGGER_TRACE_ENABLED 1
+#define LOGGER_WARN_ENABLED 1 
+#define LOGGER_INFO_ENABLED 1 
+#define LOGGER_DEBUG_ENABLED 1 
+#define LOGGER_TRACE_ENABLED 1 
 #define LOGGER_LIBRARY_ENABLED 1
 
 typedef enum {
@@ -117,73 +117,60 @@ void LOG_LIB(const char *message, ...) {
 	} \
 }
 
-/* time stuff */
-#include <sys/time.h> /* gettimeofday */
-#include <unistd.h>
+#define _static_assert(expression, message) \
+typedef char static_assertion_##message[(expression)?1:-1]
 
-struct timeval timeval_get()
+/* timing stuff */
+#include <sys/time.h> 
+#include <x86intrin.h>
+
+#define MICROSECS_PER_SEC 1000000
+#define MILLISECS_PER_SEC 1000
+#define MILLISECONDS_FOR_CALIBRATION 100
+
+static u64 read_os_timer()
 {
-	struct timeval tv;
+	struct timeval time;
+	gettimeofday(&time, 0);
 
-	i32 gettimeofday_result = gettimeofday(&tv, 0);
-	_assert(gettimeofday_result == 0);
-
-	return tv;
+	/* NOTE(josh): returns microseconds */
+	return(MICROSECS_PER_SEC * time.tv_sec + time.tv_usec);
 }
 
-f64 get_time_ms()
+/* NOTE(josh): apparently this gets inlined automatically by most compilers 
+ * but compiler might complain about the function not being used? 
+ * TODO: update this comment if that occurs ^, then u can inline. just wanted to
+ * see it happen for myself rather than just inlining like Casey did
+ */
+static u64 read_cpu_timer()
 {
-	struct timeval tv = timeval_get();
-	f64 ms = (tv.tv_sec * 1000.0) + ((f64)tv.tv_usec / 1000.0);	
-	return ms;
+	return(__rdtsc());
 }
 
-struct timeval timeval_get_difference(
-		struct timeval end, struct timeval start, b32 *success)
+static u64 read_cpu_frequency()
 {
-	struct timeval tv;
-	time_t s;
-	suseconds_t us;
+	u64 cpu_start = read_cpu_timer();
+	u64 cpu_end = 0;
+	u64 cpu_frequency = 0;
+	u64 cpu_elapsed = 0;
 
-	if(end.tv_sec == start.tv_sec)
+	u64 os_start  = read_os_timer();
+	u64 os_end = 0;
+	u64 os_elapsed = 0;
+
+	/* NOTE(josh): this will be #us in 100 ms */
+	u64 os_wait_time = MICROSECS_PER_SEC * MILLISECONDS_FOR_CALIBRATION / MILLISECS_PER_SEC; 
+
+	while(os_elapsed < os_wait_time)
 	{
-		if(end.tv_usec < start.tv_usec)
-		{
-			if(success)
-			{
-				*success = false;
-			}
-		}
+		os_end = read_os_timer();
+		os_elapsed = os_end - os_start;
 	}
 
-	s = end.tv_sec - start.tv_sec;
-	/* NOTE: suseconds_t is signed, useconds_t is unsigned 
-	 * timeval.tv_usec is of type suseconds_t 
-	 */
-	us = end.tv_usec - start.tv_usec;
+	cpu_end = read_cpu_timer();
+	cpu_elapsed = cpu_end - cpu_start;
 
-	if(us < 0)
-	{
-		s--; /* NOTE: subtract from secs and carry over to usecs */
-		us += 1000000;
-	}
+	cpu_frequency = MICROSECS_PER_SEC * cpu_elapsed / os_elapsed;
 
-	tv.tv_sec = s;
-	tv.tv_usec = us;
-	return tv;
-}
-
-i8 timeval_sleep(struct timeval tv)
-{
-	if(sleep(tv.tv_sec) != 0)
-	{
-		LOG_ERROR("failed to sleep");
-		_assert(0);
-	}
-	if(usleep(tv.tv_usec) == -1)
-	{
-		LOG_ERROR("failed to usleep");
-		_assert(0);
-	}
-	return true;
+	return(cpu_frequency);
 }

@@ -4,6 +4,8 @@
 #include "jstring.h"
 #include "math.c"
 
+#include "profiler.c"
+
 typedef struct {
 	vector_2 position;
 	/* NOTE: -x and +x maximums + -y and +y maximums for camera coords 
@@ -39,8 +41,8 @@ typedef struct {
 	u32 shape_count; 
 	u32 shape_next_id;
 
-	f64 last_time;
-	f64 time_elapsed;
+	u64 last_time;
+	u64 time_elapsed;
 	f64 timer;
 	b32 initialized;
 } struct_game_state;
@@ -267,6 +269,9 @@ void game_update_and_render(
 		u16 pixel_buffer_height,
 		x_input_state *input) 
 {
+	start_profile();
+
+	PROFILER_START_TIMING_BLOCK(memory_stuff);
 	/* memory stuff */
 	u64 jstring_memory_size = 1024;
 	u64 game_state_memory_size = sizeof(struct_game_state);
@@ -298,6 +303,7 @@ void game_update_and_render(
 	{
 		_assert(0);
 	}
+	PROFILER_FINISH_TIMING_BLOCK(memory_stuff);
 
 	/* initialize */
 	/* NOTE: game code expects platform layer to
@@ -313,7 +319,7 @@ void game_update_and_render(
 		state->initialized = true;
 
 			/* time stuff */
-		state->last_time = get_time_ms();
+		state->last_time = read_os_timer();
 		state->timer = 0.0;
 
 			/* camera */
@@ -348,9 +354,10 @@ void game_update_and_render(
 	}
 
 	/* update */
-	state->time_elapsed = get_time_ms() - state->last_time;	
+	PROFILER_START_TIMING_BLOCK(update);
+	state->time_elapsed = read_os_timer() - state->last_time;	
 	state->timer += state->time_elapsed;
-	state->last_time = get_time_ms();
+	state->last_time = read_os_timer();
 
 	const char *str = "This is a test string";
 	jstring test_string = 
@@ -542,8 +549,10 @@ void game_update_and_render(
 	{
 		state->shape_count = 0;
 	}
+	PROFILER_FINISH_TIMING_BLOCK(update);
 
 	/* render */
+	PROFILER_START_TIMING_BLOCK(render);
 	draw_background_in_buffer(
 		pixel_buffer,
 		pixel_buffer_width, 
@@ -625,12 +634,19 @@ void game_update_and_render(
 	vector_4 colors[6]; 
 	colors[0] = cyan4;
 	colors[1] = magenta4;
-	colors[2] = black4;
-	colors[3] = black4;
+	colors[2] = white4;
+	colors[3] = white4;
 	colors[4] = magenta4;
 	colors[5] = yellow4;
 
-	f64 before = get_time_ms();
+	colors[0].z = (f32) (state->timer / 2000000.0);
+	colors[1].z = (f32) (state->timer / 2000000.0);
+	colors[2].z = (f32) (state->timer / 2000000.0);
+	colors[3].z = (f32) (state->timer / 2000000.0);
+	colors[4].z = (f32) (state->timer / 2000000.0);
+	colors[5].z = (f32) (state->timer / 2000000.0);
+
+	PROFILER_START_TIMING_BLOCK(draw_triangles);
 	draw_triangles_in_buffer(
 		pixel_buffer,
 		pixel_buffer_width,
@@ -639,13 +655,7 @@ void game_update_and_render(
 		vertices,
 		colors,
 		6);
-	f64 after = get_time_ms();
-	if(state->timer > 2000.0)
-	{
-		LOG_DEBUG("draw_triangles_in_buffer took: %.4lfms", 
-				after - before);
-		state->timer = 0.0;
-	}
+	PROFILER_FINISH_TIMING_BLOCK(draw_triangles);
 
 	draw_text_in_buffer(
 		pixel_buffer,
@@ -655,6 +665,13 @@ void game_update_and_render(
 		1,
 		test_string,
 		white);
+
+	PROFILER_FINISH_TIMING_BLOCK(render);
+	if(state->timer > 2000000.0)
+	{
+		finish_and_print_profile(LOG_TRACE);
+		state->timer = 0.0;
+	}
 }
 
 b32 check_collision_aabb(struct_aabb first, struct_aabb second)
