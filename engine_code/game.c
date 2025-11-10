@@ -1,6 +1,6 @@
 #include "game.h"
 
-#include "util.c"
+#include "linux_util.c"
 #include "jstring.h"
 #include "math.c"
 
@@ -623,30 +623,35 @@ void game_update_and_render(
 		}
 	}
 
-	vector_2 vertices[6] = {
+	vector_2 vertices[12] = {
 		{0.5f, 0.5f},
 		{-0.5f, 0.5f},
 		{0.5f, -0.5f},
 		{0.5f, -0.5f},
 		{-0.5f, 0.5f},
 		{-0.5f, -0.5f},
+		{1.5f, 1.5f},
+		{0.5f, 1.5f},
+		{1.5f, 0.5f},
+		{1.5f, 0.5f},
+		{0.5f, 1.5f},
+		{0.5f, 0.5f}
 	};
-	vector_4 colors[6]; 
+
+	vector_4 colors[12]; 
 	colors[0] = cyan4;
 	colors[1] = magenta4;
 	colors[2] = white4;
 	colors[3] = white4;
 	colors[4] = magenta4;
 	colors[5] = yellow4;
+	colors[6] = orange4;
+	colors[7] = black4;
+	colors[8] = white4;
+	colors[9] = white4;
+	colors[10] = black4;
+	colors[11] = cyan4;
 
-	colors[0].z = (f32) (state->timer / 2000000.0);
-	colors[1].z = (f32) (state->timer / 2000000.0);
-	colors[2].z = (f32) (state->timer / 2000000.0);
-	colors[3].z = (f32) (state->timer / 2000000.0);
-	colors[4].z = (f32) (state->timer / 2000000.0);
-	colors[5].z = (f32) (state->timer / 2000000.0);
-
-	PROFILER_START_TIMING_BLOCK(draw_triangles);
 	draw_triangles_in_buffer(
 		pixel_buffer,
 		pixel_buffer_width,
@@ -654,8 +659,7 @@ void game_update_and_render(
 		state->game_camera,
 		vertices,
 		colors,
-		6);
-	PROFILER_FINISH_TIMING_BLOCK(draw_triangles);
+		12);
 
 	draw_text_in_buffer(
 		pixel_buffer,

@@ -26,7 +26,7 @@ typedef double f64;
 #define true 1
 #define false 0
 
-#include "util.c"
+#include "linux_util.c"
 #include "xcb_input.c" /* NOTE: my xcb input utils file */
 
 #define FRAME_RATE (60.0)
@@ -434,7 +434,7 @@ int main(int argc, char **argv)
 		x_generate_game_input();
 
 		/* load game code */
-		void *game_shared_object_handle = dlopen("./libgame.so", RTLD_NOW);
+		void *game_shared_object_handle = dlopen("./build/libgame.so", RTLD_NOW);
 		if(!game_shared_object_handle)
 		{
 			LOG_ERROR("dlopen: %s", dlerror());

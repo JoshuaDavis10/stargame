@@ -51,13 +51,10 @@ void draw_pixel_in_buffer_vec4(
 		u32 pixel,
 		vector_4 color)
 {
-		if(pixel < buffer_width * buffer_height)
-		{
-			pixel_buffer[4*pixel] =   (u8)(255.0f * color.z);
-			pixel_buffer[4*pixel+1] = (u8)(255.0f * color.y);
-			pixel_buffer[4*pixel+2] = (u8)(255.0f * color.x);
-			pixel_buffer[4*pixel+3] = (u8)(255.0f * color.w);
-		}
+	pixel_buffer[4*pixel] =   (u8)(255.0f * color.z);
+	pixel_buffer[4*pixel+1] = (u8)(255.0f * color.y);
+	pixel_buffer[4*pixel+2] = (u8)(255.0f * color.x);
+	pixel_buffer[4*pixel+3] = (u8)(255.0f * color.w);
 }
 
 void draw_triangles_in_buffer(
@@ -69,6 +66,9 @@ void draw_triangles_in_buffer(
 	vector_4 *vertex_colors,	
 	u32 vertex_count)
 {
+	PROFILER_START_TIMING_BANDWIDTH(draw_triangles, 
+		(sizeof(vector_2) * vertex_count) + (sizeof(vector_4) * vertex_count));
+
 	vertex_count = vertex_count - (vertex_count % 3);
 	f32 max_x;
 	f32 max_y;
@@ -86,6 +86,7 @@ void draw_triangles_in_buffer(
 	u32 vertex_index = 0;
 	for( ; vertex_index < vertex_count; vertex_index+=3)
 	{
+		PROFILER_START_TIMING_BLOCK(max_min);
 		v0 = vertex_positions[vertex_index];	
 		v1 = vertex_positions[vertex_index + 1];	
 		v2 = vertex_positions[vertex_index + 2];	
@@ -142,16 +143,32 @@ void draw_triangles_in_buffer(
 		f32 det01p;
 		f32 det12p;
 		f32 det20p;
-		for( ; x < aabb_max_x; x++)
+
+		/* needed for color interpolation */
+		f32 det012 = det_2x2_from_vectors( sub_vec2(v1, v0), sub_vec2(v2, v0) );
+
+		f32 lambda0;
+		f32 lambda1;
+		f32 lambda2;
+
+		vector_4 c0part;
+		vector_4 c1part;
+		vector_4 c2part;
+
+		PROFILER_FINISH_TIMING_BLOCK(max_min);
+		for( ; y < aabb_max_y; y++)
 		{
-			if(x < 0 || x >= buffer_width)
+			PROFILER_START_TIMING_BLOCK(pixel_line);
+			if(y < 0 || y >= (i32)buffer_height)
 			{
 				continue;
 			}
-			for(y = aabb_min_y ; y < aabb_max_y; y++)
+			for(x = aabb_min_x ; x < aabb_max_x; x++)
 			{
-				if(y < 0 || y >= buffer_height)
+				PROFILER_START_TIMING_BLOCK(pixel);
+				if(x < 0 || x >= (i32)buffer_width)
 				{
+					LOG_DEBUG("x: %d, buffer_height: %d", x, (i32)buffer_height);
 					continue;
 				}
 				point.x = (f32)x;
@@ -160,10 +177,12 @@ void draw_triangles_in_buffer(
 				edge = sub_vec2(v1, v0);
 				start_to_point = sub_vec2(point, v0);
 				det01p = det_2x2_from_vectors(edge, start_to_point);
+				if(det01p < 0.0) { continue; }
 
 				edge = sub_vec2(v2, v1);
 				start_to_point = sub_vec2(point, v1);
 				det12p = det_2x2_from_vectors(edge, start_to_point);
+				if(det12p < 0.0) { continue; }
 
 				edge = sub_vec2(v0, v2);
 				start_to_point = sub_vec2(point, v2);
@@ -172,15 +191,13 @@ void draw_triangles_in_buffer(
 				if(det01p >= 0.0f && det12p >= 0.0f && det20p >= 0.0f)
 				{
 
-					f32 det012 = det_2x2_from_vectors( sub_vec2(v1, v0), sub_vec2(v2, v0) );
+					lambda0 = det12p / det012;
+					lambda1 = det20p / det012;
+					lambda2 = det01p / det012;
 
-					f32 lambda0 = det12p / det012;
-					f32 lambda1 = det20p / det012;
-					f32 lambda2 = det01p / det012;
-
-					vector_4 c0part = mult_vec4_by_const(lambda0, c0);
-					vector_4 c1part = mult_vec4_by_const(lambda1, c1);
-					vector_4 c2part = mult_vec4_by_const(lambda2, c2);
+					c0part = mult_vec4_by_const(lambda0, c0);
+					c1part = mult_vec4_by_const(lambda1, c1);
+					c2part = mult_vec4_by_const(lambda2, c2);
 
 					vector_4 color = add_vec4(c0part, c1part);
 					color = add_vec4(color, c2part);
@@ -194,9 +211,12 @@ void draw_triangles_in_buffer(
 						pixel,
 						color);
 				}
+				PROFILER_FINISH_TIMING_BLOCK(pixel);
 			}
+			PROFILER_FINISH_TIMING_BLOCK(pixel_line);
 		}
 	}
+	PROFILER_FINISH_TIMING_BLOCK(draw_triangles);
 }
 
 void draw_background_in_buffer(
@@ -205,6 +225,9 @@ void draw_background_in_buffer(
 		u16 buffer_height,
 		struct_rgba_color color) 
 {
+	PROFILER_START_TIMING_BANDWIDTH(clear_background, 
+		(u64)(buffer_width*buffer_height));
+
 	pixel_buffer[0] = color.b;
 	pixel_buffer[1] = color.g;
 	pixel_buffer[2] = color.r;
@@ -227,6 +250,7 @@ void draw_background_in_buffer(
 				pixel_buffer, bytes_next_copy - bytes_copied); 	
 		bytes_copied = bytes_next_copy;
 	}
+	PROFILER_FINISH_TIMING_BLOCK(clear_background);
 }
 
 void draw_line_in_buffer(

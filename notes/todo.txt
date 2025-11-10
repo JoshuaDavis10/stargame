@@ -1,0 +1,20 @@
+11-10-25
+so I can draw triangles with color interpolation onw
+[ ] I think next step is to have a mesh construct with vertices that have position and color
+so then have a funciton that draws a given mesh at a given position (draw_mesh) I guess
+
+[ ] factor out draw_triangles into smaller functions that can be profiled separately/this will make the
+code less chaos
+
+[ ] build square tilemap (like small 8x8) and make a little game, maybe just chess?
+	- a game this simple could also be a nice spot to put networking into the game engine 
+	(but that's kind of a horrible idea right now since that's a lot of work and you need to program graphics fr)
+
+[ ] might want to do a performance pass before going on to harder topics, since triangle rasterization needs
+to be REALLY fast
+
+[ ] texture mapping?
+	- spend lots of time learning/researching before implementing
+
+[ ] 3D?
+	- spend lots of time learning/researching before implementing

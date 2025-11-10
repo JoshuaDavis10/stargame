@@ -132,7 +132,7 @@ static void finish_and_print_profile(void (*logger)(const char *, ...))
 			f64 bytes_per_second = (f64)bytes_processed / seconds;
 			f64 megabytes = bytes_processed / megabyte;
 			f64 gigabytes_per_second = bytes_per_second / gigabyte;
-			logger("    %.3lfmb at %.2lfgb/s", megabytes, gigabytes_per_second); 
+			logger("    %.6lfmb at %.6lfgb/s", megabytes, gigabytes_per_second); 
 		}
 
 		unit_index++;
