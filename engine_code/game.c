@@ -652,14 +652,27 @@ void game_update_and_render(
 	colors[10] = black4;
 	colors[11] = cyan4;
 
-	draw_triangles_in_buffer(
+	render_mesh squares;
+	squares.positions = vertices;
+	squares.colors = colors;
+	squares.vertex_count = 12;
+
+	vector_2 pos;
+	/* TODO: world coords <-> screen coords functions */
+	pos.x = (f32)(input->mouse_x * (state->game_camera.bounds.x) / pixel_buffer_width) - 
+			(state->game_camera.bounds.x/2.0f) - state->game_camera.position.x;
+	pos.y = (f32)(input->mouse_y * (state->game_camera.bounds.y) / pixel_buffer_height) - 
+			(state->game_camera.bounds.y/2.0f) - state->game_camera.position.y;
+
+	draw_mesh(
 		pixel_buffer,
-		pixel_buffer_width,
+		pixel_buffer_width, 
 		pixel_buffer_height,
-		state->game_camera,
-		vertices,
-		colors,
-		12);
+		&squares,
+		pos,
+		state->game_camera);
+
+
 
 	draw_text_in_buffer(
 		pixel_buffer,

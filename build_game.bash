@@ -4,8 +4,9 @@ build_directory=build
 binary_directory=bin
 source_directory=engine_code
 
+nasm -f elf64 $source_directory/clear_background.asm -o $build_directory/clear_background.o
 gcc -std=c89 -fsanitize=address -DPROFILER=$1 -Wall -Wextra -Wno-unused-parameter -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-function -c $source_directory/game.c -fpic -o $build_directory/game.o -lm
-gcc -shared $build_directory/game.o -o $build_directory/temp.so -lm
+gcc -shared $build_directory/game.o $build_directory/clear_background.o -o $build_directory/temp.so -lm
 mv $build_directory/temp.so $build_directory/libgame.so
 
 export LD_LIBRARY_PATH=/home/josh/dev/stargame/$build_directory:$LD_LIBRARY_PATH

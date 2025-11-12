@@ -7,6 +7,12 @@ typedef struct {
 	u8 a;
 } struct_rgba_color;
 
+typedef struct {
+	u64 vertex_count;
+	vector_2* positions;
+	vector_4* colors;
+} render_mesh;
+
 /* TODO: macros */
 static struct_rgba_color red = {255, 0, 0, 0};
 static struct_rgba_color green = {0, 255, 0, 0};
@@ -62,6 +68,7 @@ void draw_triangles_in_buffer(
 	u16 buffer_width,
 	u16 buffer_height,
 	camera cam,
+	vector_2 position,
 	vector_2 *vertex_positions,
 	vector_4 *vertex_colors,	
 	u32 vertex_count)
@@ -87,9 +94,9 @@ void draw_triangles_in_buffer(
 	for( ; vertex_index < vertex_count; vertex_index+=3)
 	{
 		PROFILER_START_TIMING_BLOCK(max_min);
-		v0 = vertex_positions[vertex_index];	
-		v1 = vertex_positions[vertex_index + 1];	
-		v2 = vertex_positions[vertex_index + 2];	
+		v0 = add_vec2(vertex_positions[vertex_index], position);	
+		v1 = add_vec2(vertex_positions[vertex_index + 1], position);	
+		v2 = add_vec2(vertex_positions[vertex_index + 2], position);	
 
 		c0 = vertex_colors[vertex_index];
 		c1 = vertex_colors[vertex_index + 1];
@@ -168,7 +175,7 @@ void draw_triangles_in_buffer(
 				PROFILER_START_TIMING_BLOCK(pixel);
 				if(x < 0 || x >= (i32)buffer_width)
 				{
-					LOG_DEBUG("x: %d, buffer_height: %d", x, (i32)buffer_height);
+					PROFILER_FINISH_TIMING_BLOCK(pixel);
 					continue;
 				}
 				point.x = (f32)x;
@@ -177,12 +184,18 @@ void draw_triangles_in_buffer(
 				edge = sub_vec2(v1, v0);
 				start_to_point = sub_vec2(point, v0);
 				det01p = det_2x2_from_vectors(edge, start_to_point);
-				if(det01p < 0.0) { continue; }
+				if(det01p < 0.0) { 
+					PROFILER_FINISH_TIMING_BLOCK(pixel);
+					continue; 
+				}
 
 				edge = sub_vec2(v2, v1);
 				start_to_point = sub_vec2(point, v1);
 				det12p = det_2x2_from_vectors(edge, start_to_point);
-				if(det12p < 0.0) { continue; }
+				if(det12p < 0.0) { 
+					PROFILER_FINISH_TIMING_BLOCK(pixel);
+					continue; 
+				}
 
 				edge = sub_vec2(v0, v2);
 				start_to_point = sub_vec2(point, v2);
@@ -190,7 +203,7 @@ void draw_triangles_in_buffer(
 
 				if(det01p >= 0.0f && det12p >= 0.0f && det20p >= 0.0f)
 				{
-
+					PROFILER_START_TIMING_BLOCK(color);
 					lambda0 = det12p / det012;
 					lambda1 = det20p / det012;
 					lambda2 = det01p / det012;
@@ -210,6 +223,7 @@ void draw_triangles_in_buffer(
 						buffer_height,
 						pixel,
 						color);
+					PROFILER_FINISH_TIMING_BLOCK(color);
 				}
 				PROFILER_FINISH_TIMING_BLOCK(pixel);
 			}
@@ -219,15 +233,53 @@ void draw_triangles_in_buffer(
 	PROFILER_FINISH_TIMING_BLOCK(draw_triangles);
 }
 
+void draw_mesh(u8 *pixel_buffer, u16 buffer_width, u16 buffer_height, render_mesh *mesh, vector_2 position, camera cam)
+{
+	draw_triangles_in_buffer(
+		pixel_buffer,
+		buffer_width,
+		buffer_height,
+		cam,
+		position,
+		mesh->positions,
+		mesh->colors,
+		mesh->vertex_count);
+}
+
+extern void FILL_PIXELS_ASM(u8 *pixel_buffer, u64 count, u32 color_32_bit);
+
+void draw_background_in_buffer_asm(
+		u8 *pixel_buffer,
+		u16 buffer_width, 
+		u16 buffer_height,
+		struct_rgba_color color) 
+{
+	u64 count = buffer_width * buffer_height;
+
+	/*
+	 * TODO: trying to figure out how to write the color 2 at a time by storing in a 64 bit value, but was causing an illegal
+	 * instruction crash
+	u64 color_64_bit = ((u64)color.b << 56) + ((u64)color.g << 48) + ((u64)color.r << 40)+ ((u64)color.a << 32) + 
+					   ((u64)color.b << 24) + ((u64)color.g << 16) + ((u64)color.r << 8) + ((u64)color.a);
+					   */
+
+	u32 color_32_bit = ((u32)color.b << 24) + ((u32)color.g << 16) + ((u32)color.r << 8) + ((u32)color.a);
+
+	PROFILER_START_TIMING_BANDWIDTH(clear_background, 
+		(u64)(buffer_width*buffer_height));
+	FILL_PIXELS_ASM(pixel_buffer, count, color_32_bit);
+	PROFILER_FINISH_TIMING_BLOCK(clear_background);
+}
+
 void draw_background_in_buffer(
 		u8 *pixel_buffer,
 		u16 buffer_width, 
 		u16 buffer_height,
 		struct_rgba_color color) 
 {
+
 	PROFILER_START_TIMING_BANDWIDTH(clear_background, 
 		(u64)(buffer_width*buffer_height));
-
 	pixel_buffer[0] = color.b;
 	pixel_buffer[1] = color.g;
 	pixel_buffer[2] = color.r;

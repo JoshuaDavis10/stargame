@@ -142,6 +142,7 @@ static void finish_and_print_profile(void (*logger)(const char *, ...))
 
 #else
 
+#define PROFILER_START_TIMING_BANDWIDTH(block_name, bytes)
 #define PROFILER_START_TIMING_BLOCK(name) 
 #define PROFILER_FINISH_TIMING_BLOCK(name)
 #define PROFILER_END
