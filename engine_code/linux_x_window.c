@@ -42,6 +42,8 @@ static x_input_state x_global_game_input_state = {0};
 static void *x_global_game_memory_ptr;
 static u64 x_global_game_memory_size;
 static f64 x_global_timer = 0.0;
+static i32 x_global_pixel_buffer_x;
+static i32 x_global_pixel_buffer_y;
 
 void x_generate_game_input()
 {
@@ -102,8 +104,14 @@ int main(int argc, char **argv)
 		}
 	}
 	_assert(x_screen);
+	x_global_window_width = 1152;
+	x_global_window_height = 648;
+	/*
 	x_global_window_width = x_screen->width_in_pixels;
 	x_global_window_height = x_screen->height_in_pixels;
+	*/
+	x_global_pixel_buffer_x = (x_screen->width_in_pixels - x_global_window_width) / 2;
+	x_global_pixel_buffer_y = (x_screen->height_in_pixels - x_global_window_height) / 2;
 
 	/*generate id to be passed to xcb_create_window*/
 	xcb_window_t x_window_id = xcb_generate_id(x_connection);
@@ -214,6 +222,8 @@ int main(int argc, char **argv)
 		return(1);
 	}
 	free(x_wm_state_reply);
+
+
 	xcb_intern_atom_cookie_t x_internal_atom_wm_fullscreen =
 		xcb_intern_atom(x_connection, 1, 24, "_NET_WM_STATE_FULLSCREEN");
 	xcb_intern_atom_reply_t *x_wm_fullscreen_reply =
@@ -396,8 +406,8 @@ int main(int argc, char **argv)
 					i16 mouse_x = x_mouse_motion_event->event_x;
 					i16 mouse_y = x_mouse_motion_event->event_y;
 
-					x_global_new_input_state.mouse_x = mouse_x;
-					x_global_new_input_state.mouse_y = mouse_y;
+					x_global_new_input_state.mouse_x = mouse_x - x_global_pixel_buffer_x;
+					x_global_new_input_state.mouse_y = mouse_y - x_global_pixel_buffer_y;
 				} break;
 				case XCB_ENTER_NOTIFY:
 				{
@@ -434,7 +444,7 @@ int main(int argc, char **argv)
 		x_generate_game_input();
 
 		/* load game code */
-		void *game_shared_object_handle = dlopen("./build/libgame.so", RTLD_NOW);
+		void *game_shared_object_handle = dlopen("./build/libtilegame.so", RTLD_NOW);
 		if(!game_shared_object_handle)
 		{
 			LOG_ERROR("dlopen: %s", dlerror());
@@ -456,7 +466,7 @@ int main(int argc, char **argv)
 				x_pixmap_data, 
 				x_global_window_width,
 				x_global_window_height,
-	    			&x_global_game_input_state);
+	    		&x_global_game_input_state);
 
 		dlclose(game_shared_object_handle);
 
@@ -474,7 +484,6 @@ int main(int argc, char **argv)
 
 		frame_start_time_us = read_os_timer();
 
-		/* present frame */
 		xcb_put_image(
 				x_connection,
 				XCB_IMAGE_FORMAT_Z_PIXMAP,
@@ -492,7 +501,7 @@ int main(int argc, char **argv)
 				x_backbuffer,
 				x_window_id,
 				x_graphics_context,
-				0, 0, 0, 0,
+				0, 0, x_global_pixel_buffer_x, x_global_pixel_buffer_y,
 				x_global_window_width,
 				x_global_window_height);
 		

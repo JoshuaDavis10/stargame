@@ -359,6 +359,8 @@ void game_update_and_render(
 	state->timer += state->time_elapsed;
 	state->last_time = read_os_timer();
 
+	state->game_camera.position.x += (f32)state->time_elapsed / 100000.0f;
+
 	const char *str = "This is a test string";
 	jstring test_string = 
 		jstring_create_temporary(str, jstring_length(str));

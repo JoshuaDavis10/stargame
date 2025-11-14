@@ -98,7 +98,7 @@ void LOG_LIB(const char *message, ...) {
 	va_start(arg_ptr, message);
     vsnprintf(output, MAX_LOGGER_MESSAGE_SIZE, message, arg_ptr);
 	va_end(arg_ptr);
-	printf("\e[1;35m[LIB]:\e[0;35m %s\e[0;37m\n", output);
+	printf("\e[1;35m[LIB]:  \e[0;35m %s\e[0;37m\n", output);
 }
 #else
 void LOG_LIB(const char *message, ...) {

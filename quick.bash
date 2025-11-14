@@ -1,4 +1,4 @@
 #!/usr/bin/bash
 
-./build_optimized.bash 1
-./bin/game
+./build_tilegame.bash $1
+./bin/tilegame

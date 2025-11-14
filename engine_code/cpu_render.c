@@ -27,10 +27,14 @@ static struct_rgba_color white = {255, 255, 255, 0};
 static struct_rgba_color black = {0, 0, 0, 0};
 static struct_rgba_color gray = {40, 40, 40, 40};
 
+static vector_4 blue4 = {0.0f, 0.0f, 1.0f, 0.0f};
 static vector_4 cyan4 = {0.0f, 1.0f, 1.0f, 0.0f};
+static vector_4 green4 = {0.0f, 1.0f, 0.0f, 0.0f};
 static vector_4 yellow4 = {1.0f, 1.0f, 0.0f, 0.0f};
-static vector_4 magenta4 = {1.0f, 0.0f, 1.0f, 0.0f};
 static vector_4 orange4 = {1.0f, 0.5f, 0.0f, 0.0f};
+static vector_4 red4 = {1.0f, 0.0f, 0.0f, 0.0f};
+static vector_4 magenta4 = {1.0f, 0.0f, 1.0f, 0.0f};
+
 static vector_4 white4 = {1.0f, 1.0f, 1.0f, 0.0f};
 static vector_4 black4 = {0.0f, 0.0f, 0.0f, 0.0f};
 
@@ -93,7 +97,6 @@ void draw_triangles_in_buffer(
 	u32 vertex_index = 0;
 	for( ; vertex_index < vertex_count; vertex_index+=3)
 	{
-		PROFILER_START_TIMING_BLOCK(max_min);
 		v0 = add_vec2(vertex_positions[vertex_index], position);	
 		v1 = add_vec2(vertex_positions[vertex_index + 1], position);	
 		v2 = add_vec2(vertex_positions[vertex_index + 2], position);	
@@ -147,12 +150,16 @@ void draw_triangles_in_buffer(
 		vector_2 edge;
 		vector_2 edge_start;
 		vector_2 edge_end;
-		f32 det01p;
-		f32 det12p;
-		f32 det20p;
+
+		/* TODO: these should be integer calculations */
+		f32 det01p_row;
+		f32 det12p_row;
+		f32 det20p_row;
+
+		f32 A01, A12, A20, B01, B12, B20;
 
 		/* needed for color interpolation */
-		f32 det012 = det_2x2_from_vectors( sub_vec2(v1, v0), sub_vec2(v2, v0) );
+		f32 reciprocal_det012 = 1.0f / (det_2x2_from_vectors( sub_vec2(v1, v0), sub_vec2(v2, v0) ));
 
 		f32 lambda0;
 		f32 lambda1;
@@ -162,51 +169,48 @@ void draw_triangles_in_buffer(
 		vector_4 c1part;
 		vector_4 c2part;
 
-		PROFILER_FINISH_TIMING_BLOCK(max_min);
+		/* step values */
+		A01 = v0.y - v1.y; 
+		A12 = v1.y - v2.y;
+		A20 = v2.y - v0.y;
+		B01 = v1.x - v0.x;
+		B12 = v2.x - v1.x; 
+		B20 = v0.x - v2.x;
+
+		/* get determinants for starting pixel */
+		point.x = (f32)x;
+		point.y = (f32)y;
+		edge = sub_vec2(v1, v0);
+		start_to_point = sub_vec2(point, v0);
+		det01p_row = det_2x2_from_vectors(edge, start_to_point);
+		edge = sub_vec2(v2, v1);
+		start_to_point = sub_vec2(point, v1);
+		det12p_row = det_2x2_from_vectors(edge, start_to_point);
+		edge = sub_vec2(v0, v2);
+		start_to_point = sub_vec2(point, v2);
+		det20p_row = det_2x2_from_vectors(edge, start_to_point);
+
+		/* TODO: SIMD 4 pixels at once */
 		for( ; y < aabb_max_y; y++)
 		{
-			PROFILER_START_TIMING_BLOCK(pixel_line);
+			f32 det01p = det01p_row;
+			f32 det12p = det12p_row;
+			f32 det20p = det20p_row;
 			if(y < 0 || y >= (i32)buffer_height)
 			{
 				continue;
 			}
 			for(x = aabb_min_x ; x < aabb_max_x; x++)
 			{
-				PROFILER_START_TIMING_BLOCK(pixel);
 				if(x < 0 || x >= (i32)buffer_width)
 				{
-					PROFILER_FINISH_TIMING_BLOCK(pixel);
 					continue;
 				}
-				point.x = (f32)x;
-				point.y = (f32)y;
-
-				edge = sub_vec2(v1, v0);
-				start_to_point = sub_vec2(point, v0);
-				det01p = det_2x2_from_vectors(edge, start_to_point);
-				if(det01p < 0.0) { 
-					PROFILER_FINISH_TIMING_BLOCK(pixel);
-					continue; 
-				}
-
-				edge = sub_vec2(v2, v1);
-				start_to_point = sub_vec2(point, v1);
-				det12p = det_2x2_from_vectors(edge, start_to_point);
-				if(det12p < 0.0) { 
-					PROFILER_FINISH_TIMING_BLOCK(pixel);
-					continue; 
-				}
-
-				edge = sub_vec2(v0, v2);
-				start_to_point = sub_vec2(point, v2);
-				det20p = det_2x2_from_vectors(edge, start_to_point);
-
 				if(det01p >= 0.0f && det12p >= 0.0f && det20p >= 0.0f)
 				{
-					PROFILER_START_TIMING_BLOCK(color);
-					lambda0 = det12p / det012;
-					lambda1 = det20p / det012;
-					lambda2 = det01p / det012;
+					lambda0 = det12p * reciprocal_det012;
+					lambda1 = det20p * reciprocal_det012;
+					lambda2 = det01p * reciprocal_det012;
 
 					c0part = mult_vec4_by_const(lambda0, c0);
 					c1part = mult_vec4_by_const(lambda1, c1);
@@ -223,17 +227,20 @@ void draw_triangles_in_buffer(
 						buffer_height,
 						pixel,
 						color);
-					PROFILER_FINISH_TIMING_BLOCK(color);
 				}
-				PROFILER_FINISH_TIMING_BLOCK(pixel);
+				det01p += A01;
+				det12p += A12;
+				det20p += A20;
 			}
-			PROFILER_FINISH_TIMING_BLOCK(pixel_line);
+			det01p_row += B01;
+			det12p_row += B12;
+			det20p_row += B20;
 		}
 	}
 	PROFILER_FINISH_TIMING_BLOCK(draw_triangles);
 }
 
-void draw_mesh(u8 *pixel_buffer, u16 buffer_width, u16 buffer_height, render_mesh *mesh, vector_2 position, camera cam)
+void draw_mesh(u8 *pixel_buffer, u16 buffer_width, u16 buffer_height, render_mesh mesh, vector_2 position, camera cam)
 {
 	draw_triangles_in_buffer(
 		pixel_buffer,
@@ -241,9 +248,9 @@ void draw_mesh(u8 *pixel_buffer, u16 buffer_width, u16 buffer_height, render_mes
 		buffer_height,
 		cam,
 		position,
-		mesh->positions,
-		mesh->colors,
-		mesh->vertex_count);
+		mesh.positions,
+		mesh.colors,
+		mesh.vertex_count);
 }
 
 extern void FILL_PIXELS_ASM(u8 *pixel_buffer, u64 count, u32 color_32_bit);
@@ -1048,6 +1055,47 @@ void draw_character_in_buffer(
 				pixel_buffer, buffer_width, buffer_height,
 				col, row, font_size, font_size, color);
 		}
+	}
+}
+
+void draw_text_in_buffer_centered(
+		u8 *pixel_buffer, u16 buffer_width, u16 buffer_height,
+		i32 x, i32 y,
+		u8 font_size,
+		jstring text,
+		struct_rgba_color color)
+{
+	/* TODO: */
+	i32 char_x = x - (( (font_size * 7 + font_size) / 2 ) * text.length);
+	i32 char_y = y - (( (font_size * 7 + font_size) /2 ));
+	u32 character;
+	for(character = 0; character < text.length; character++)
+	{
+		switch(text.data[character])
+		{
+			case ' ':
+			{
+				char_x += font_size * 7 + font_size;
+			} break;
+			case '\n':
+			{
+				char_y += font_size * 7 + 2 * font_size;
+				char_x = x;
+			} break;
+			default:
+			{
+				draw_character_in_buffer(
+					pixel_buffer, buffer_width, buffer_height,
+					char_x, char_y,
+					font_size,
+					text.data[character],
+					color);
+				char_x += font_size * 7 + font_size;
+			} break;
+		}
+		/* NOTE: we're basically making
+		 * every character 7x7 for now
+		 */
 	}
 }
 
