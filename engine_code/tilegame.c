@@ -174,10 +174,15 @@ static i32 tile_from_world_coords(f32 x, f32 y, game_state *state)
 											*/
 	y += state->memory.tile_stride / 2.0f;
 
+	if(x < 0 || y < 0)
+	{
+		return -1;
+	}
+
 	i32 tile_x = (i32)(x / state->memory.tile_stride);
 	i32 tile_y = (i32)(y / state->memory.tile_stride);
 
-	if(tile_x < 0 || tile_y < 0 || tile_x > TILEMAP_WIDTH || tile_y > TILEMAP_HEIGHT)
+	if(tile_x >= TILEMAP_WIDTH || tile_y >= TILEMAP_HEIGHT)
 	{
 		/* world coords do not match a tile */
 		return -1;
