@@ -45,13 +45,13 @@ void draw_pixel_in_buffer_rgba(
 		u32 pixel,
 		struct_rgba_color color)
 {
-		if(pixel < buffer_width * buffer_height)
-		{
-			pixel_buffer[4*pixel] = color.b;
-			pixel_buffer[4*pixel+1] = color.g;
-			pixel_buffer[4*pixel+2] = color.r;
-			pixel_buffer[4*pixel+3] = color.a;
-		}
+	if(pixel < buffer_width * buffer_height)
+	{
+		pixel_buffer[4*pixel] = color.b;
+		pixel_buffer[4*pixel+1] = color.g;
+		pixel_buffer[4*pixel+2] = color.r;
+		pixel_buffer[4*pixel+3] = color.a;
+	}
 }
 
 void draw_pixel_in_buffer_vec4(
@@ -61,10 +61,13 @@ void draw_pixel_in_buffer_vec4(
 		u32 pixel,
 		vector_4 color)
 {
-	pixel_buffer[4*pixel] =   (u8)(255.0f * color.z);
-	pixel_buffer[4*pixel+1] = (u8)(255.0f * color.y);
-	pixel_buffer[4*pixel+2] = (u8)(255.0f * color.x);
-	pixel_buffer[4*pixel+3] = (u8)(255.0f * color.w);
+	if(pixel < buffer_width * buffer_height)
+	{
+		pixel_buffer[4*pixel] =   (u8)(255.0f * color.z);
+		pixel_buffer[4*pixel+1] = (u8)(255.0f * color.y);
+		pixel_buffer[4*pixel+2] = (u8)(255.0f * color.x);
+		pixel_buffer[4*pixel+3] = (u8)(255.0f * color.w);
+	}
 }
 
 void draw_triangles_in_buffer(

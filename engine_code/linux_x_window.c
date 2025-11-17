@@ -29,7 +29,7 @@ typedef double f64;
 #include "linux_util.c"
 #include "xcb_input.c" /* NOTE: my xcb input utils file */
 
-#define FRAME_RATE (60.0)
+#define FRAME_RATE (30.0)
 #define FRAME_TIME (u64)((1.0/FRAME_RATE) * (f64)MICROSECS_PER_SEC) /* microseconds */
 
 /* TODO: platform state struct */
@@ -104,8 +104,8 @@ int main(int argc, char **argv)
 		}
 	}
 	_assert(x_screen);
-	x_global_window_width = 1152;
-	x_global_window_height = 648;
+	x_global_window_width = 1920;
+	x_global_window_height = 1080;
 	/*
 	x_global_window_width = x_screen->width_in_pixels;
 	x_global_window_height = x_screen->height_in_pixels;
@@ -381,8 +381,6 @@ int main(int argc, char **argv)
 							&x_global_new_input_state,
 							button,
 							true);
-
-					LOG_DEBUG("pressed button: %u", button);
 				} break;
 				case XCB_BUTTON_RELEASE:
 				{
@@ -396,7 +394,6 @@ int main(int argc, char **argv)
 							&x_global_new_input_state,
 							button,
 							false);
-					LOG_DEBUG("released button: %u", button);
 				} break;
 				case XCB_MOTION_NOTIFY:
 				{

@@ -7,20 +7,75 @@
 #include "profiler.c"
 
 #define MAX_VERTICES 512
-#define JSTRING_MEMORY_SIZE 1024
+#define JSTRING_MEMORY_SIZE 2048
 
 #define TILEMAP_WIDTH 8
 #define TILEMAP_HEIGHT 8 
 
+#define FONTSIZE 2 
+
+static const char *unit_type_red_label = "RED";
+static const char *unit_type_green_label = "GREEN";
+static const char *unit_type_blue_label = "BLUE";
+static const char *tile_type_basic_label = "BASIC";
+static const char *tile_type_red_label = "RED";
+static const char *tile_type_green_label = "GREEN";
+
 enum {
-	TILE_TYPE_EMPTY,
-	TILE_TYPE_HAS_GUY,
+	TILE_TYPE_BASIC,
+	TILE_TYPE_RED,
+	TILE_TYPE_GREEN,
 	TILE_TYPE_COUNT
 };
 
+enum {
+	UNIT_TYPE_NONE,
+	UNIT_TYPE_RED,
+	UNIT_TYPE_GREEN,
+	UNIT_TYPE_BLUE,
+	UNIT_TYPE_COUNT
+};
+
+typedef struct {
+	i32 tile_type;
+	i32 unit_type;
+} tile;
+
+enum {
+	TARGET_TYPE_ADJACENT_STRAIGHT,
+	TARGET_TYPE_ADJACENT_DIAGONAL,
+	TARGET_TYPE_ADJACENT_ALL,
+	TARGET_TYPE_ROW,
+	TARGET_TYPE_COLUMN,
+	TARGET_TYPE_DIAGONAL,
+	TARGET_TYPE_NONE,
+	TARGET_TYPE_COUNT
+};
+
+enum {
+	STATE_PLAYING,
+	STATE_WON,
+	STATE_COUNT
+};
+
+typedef struct {
+	i32 target_type;
+	i32 tile_type_shift_targets;
+	i32 unit_type_shift_targets;
+} tile_behavior;
+
+/* TODO: this should be a table of some sort so it can be indexed by tile_type enum */
+static const tile_behavior tile_type_basic_behavior = {TARGET_TYPE_ADJACENT_STRAIGHT, TILE_TYPE_BASIC, UNIT_TYPE_RED};
+static const tile_behavior tile_type_red_behavior = {TARGET_TYPE_ADJACENT_STRAIGHT, TILE_TYPE_RED, UNIT_TYPE_BLUE};
+static const tile_behavior tile_type_green_behavior = {TARGET_TYPE_ADJACENT_STRAIGHT, TILE_TYPE_RED, UNIT_TYPE_NONE};
+
 typedef enum {
-	MESH_TYPE_TILE_EMPTY,
-	MESH_TYPE_GUY,
+	MESH_TYPE_TILE_BASIC,
+	MESH_TYPE_TILE_RED,
+	MESH_TYPE_TILE_GREEN,
+	MESH_TYPE_UNIT_RED,
+	MESH_TYPE_UNIT_GREEN,
+	MESH_TYPE_UNIT_BLUE,
 	MESH_TYPE_COUNT
 } mesh_type;
 
@@ -43,10 +98,13 @@ typedef struct {
 	vector_2 *vertex_position_data;
 	vector_4 *vertex_color_data;
 	u32 vertex_count;
-	i32 *tiles;
+	tile *tiles;
 	f32 tile_stride;
 	f32 tilemap_offset_x;
 	f32 tilemap_offset_y;
+	u32 blue_count;
+	u32 red_count;
+	u32 green_count;
 } game_memory;
 
 typedef struct {
@@ -59,6 +117,7 @@ typedef struct {
 	u8 *pixel_buffer;
 	u16 pixel_buffer_width;
 	u16 pixel_buffer_height;
+	i32 state;
 } game_state;
 
 static void *game_memory_allocate(u64 *used_memory, u64 size, void *game_memory, u64 game_memory_size)
@@ -94,13 +153,22 @@ static b32 game_initialize_tilemap(game_state *state)
 	u32 index = 0;
 	for( ; index < (TILEMAP_WIDTH * TILEMAP_HEIGHT); index++)
 	{
-		state->memory.tiles[index] = TILE_TYPE_EMPTY;
+		state->memory.tiles[index].tile_type = TILE_TYPE_BASIC;
+		state->memory.tiles[index].unit_type = UNIT_TYPE_NONE;
 	}
-	state->memory.tiles[2] = TILE_TYPE_HAS_GUY;
+	state->memory.tiles[3].tile_type = TILE_TYPE_RED;
+	state->memory.tiles[3].unit_type = UNIT_TYPE_BLUE;
+	state->memory.tiles[30].tile_type = TILE_TYPE_RED;
+	state->memory.tiles[30].unit_type = UNIT_TYPE_BLUE;
 
 	state->memory.tile_stride = 1.0f;
 	state->memory.tilemap_offset_x = -3.5f;
 	state->memory.tilemap_offset_y = -3.5f;
+
+	state->memory.blue_count = 5;
+	state->memory.green_count = 2;
+	state->memory.red_count = 0;
+
 	return(true);
 }
 
@@ -121,41 +189,111 @@ static void game_draw_tilemap(game_state *state)
 		x = index % TILEMAP_WIDTH;
 		y = index / TILEMAP_HEIGHT;
 
-		/* TODO: store these values somewhere so that we know what tile
-		 * we're clicking when a user clicks */
 		pos.x = (x * state->memory.tile_stride) + state->memory.tilemap_offset_x;
 		pos.y = (y * state->memory.tile_stride) + state->memory.tilemap_offset_y;
 
-		switch(state->memory.tiles[index])
+		switch(state->memory.tiles[index].tile_type)
 		{
-			case TILE_TYPE_EMPTY:
+			case TILE_TYPE_BASIC:
 			{
-				game_draw_mesh(pos, MESH_TYPE_TILE_EMPTY, state);
-				i32 screen_x, screen_y;
-				jstring text = jstring_create_temporary("TILE", jstring_length("TILE"));
-				world_to_screen(pos.x, pos.y, &screen_x, &screen_y, state);
-				draw_text_in_buffer_centered(
-					state->pixel_buffer,
-					state->pixel_buffer_width,
-					state->pixel_buffer_height,
-					screen_x, screen_y,
-					2, text, black);
-			} break;
-			case TILE_TYPE_HAS_GUY:
-			{
-				game_draw_mesh(pos, MESH_TYPE_TILE_EMPTY, state);
-				game_draw_mesh(pos, MESH_TYPE_GUY, state);
+				game_draw_mesh(pos, MESH_TYPE_TILE_BASIC, state);
 
+				if(state->memory.tiles[index].unit_type == UNIT_TYPE_NONE)
+				{
 				i32 screen_x, screen_y;
-				jstring text = jstring_create_temporary("DUDE", jstring_length("DUDE"));
+				jstring text = jstring_create_temporary(tile_type_basic_label, jstring_length(tile_type_basic_label));
 				world_to_screen(pos.x, pos.y, &screen_x, &screen_y, state);
 				draw_text_in_buffer_centered(
 					state->pixel_buffer,
 					state->pixel_buffer_width,
 					state->pixel_buffer_height,
 					screen_x, screen_y,
-					2, text, black);
-					
+					FONTSIZE, text, black);
+				}
+			} break;
+			case TILE_TYPE_RED:
+			{
+				game_draw_mesh(pos, MESH_TYPE_TILE_RED, state);
+
+				if(state->memory.tiles[index].unit_type == UNIT_TYPE_NONE)
+				{
+				i32 screen_x, screen_y;
+				jstring text = jstring_create_temporary(tile_type_red_label, jstring_length(tile_type_red_label));
+				world_to_screen(pos.x, pos.y, &screen_x, &screen_y, state);
+				draw_text_in_buffer_centered(
+					state->pixel_buffer,
+					state->pixel_buffer_width,
+					state->pixel_buffer_height,
+					screen_x, screen_y,
+					FONTSIZE, text, black);
+				}
+			} break;
+			case TILE_TYPE_GREEN:
+			{
+				game_draw_mesh(pos, MESH_TYPE_TILE_GREEN, state);
+
+				if(state->memory.tiles[index].unit_type == UNIT_TYPE_NONE)
+				{
+				i32 screen_x, screen_y;
+				jstring text = jstring_create_temporary(tile_type_green_label, jstring_length(tile_type_green_label));
+				world_to_screen(pos.x, pos.y, &screen_x, &screen_y, state);
+				draw_text_in_buffer_centered(
+					state->pixel_buffer,
+					state->pixel_buffer_width,
+					state->pixel_buffer_height,
+					screen_x, screen_y,
+					FONTSIZE, text, black);
+				}
+			} break;
+			default:
+			{
+				_assert(0);
+			} break;
+		}
+		switch(state->memory.tiles[index].unit_type)
+		{
+			case UNIT_TYPE_RED:
+			{
+				game_draw_mesh(pos, MESH_TYPE_UNIT_RED, state);
+				i32 screen_x, screen_y;
+				jstring text = jstring_create_temporary(unit_type_red_label, jstring_length(unit_type_red_label));
+				world_to_screen(pos.x, pos.y, &screen_x, &screen_y, state);
+				draw_text_in_buffer_centered(
+					state->pixel_buffer,
+					state->pixel_buffer_width,
+					state->pixel_buffer_height,
+					screen_x, screen_y,
+					FONTSIZE, text, black);
+			} break;
+			case UNIT_TYPE_BLUE:
+			{
+				game_draw_mesh(pos, MESH_TYPE_UNIT_BLUE, state);
+				i32 screen_x, screen_y;
+				jstring text = jstring_create_temporary(unit_type_blue_label, jstring_length(unit_type_blue_label));
+				world_to_screen(pos.x, pos.y, &screen_x, &screen_y, state);
+				draw_text_in_buffer_centered(
+					state->pixel_buffer,
+					state->pixel_buffer_width,
+					state->pixel_buffer_height,
+					screen_x, screen_y,
+					FONTSIZE, text, white);
+			} break;
+			case UNIT_TYPE_GREEN:
+			{
+				game_draw_mesh(pos, MESH_TYPE_UNIT_GREEN, state);
+				i32 screen_x, screen_y;
+				jstring text = jstring_create_temporary(unit_type_green_label, jstring_length(unit_type_green_label));
+				world_to_screen(pos.x, pos.y, &screen_x, &screen_y, state);
+				draw_text_in_buffer_centered(
+					state->pixel_buffer,
+					state->pixel_buffer_width,
+					state->pixel_buffer_height,
+					screen_x, screen_y,
+					FONTSIZE, text, black);
+			} break;
+			case UNIT_TYPE_NONE:
+			{
+				/* do nothing */
 			} break;
 			default:
 			{
@@ -189,6 +327,9 @@ static i32 tile_from_world_coords(f32 x, f32 y, game_state *state)
 	}
 	return(tile_y * TILEMAP_WIDTH + tile_x);
 }
+
+static void game_update_tilemap(i32 tile_index, i32 unit_type, game_state *state);
+static void game_update_tilemap_from_tile_behavior(i32 tile_index, tile_behavior behavior, game_state *state);
 
 void game_update_and_render(
 		void *game_memory,
@@ -226,9 +367,49 @@ void game_update_and_render(
 	state->memory.vertex_color_data = 
 		(vector_4*)game_memory_allocate(&used_memory, sizeof(vector_4) * MAX_VERTICES, game_memory, game_memory_size); 
 
+	if(state->state == STATE_WON)
+	{
+		draw_background_in_buffer(pixel_buffer, pixel_buffer_width, pixel_buffer_height, gray);	
+		vector_2 pos_blue = {7.0f, -3.0f};
+		vector_2 pos_green = {-4.0f, 2.0f};
+		vector_2 pos_red = {3.0f, 3.0f};
+		game_draw_mesh(pos_red, MESH_TYPE_UNIT_RED, state);
+		game_draw_mesh(pos_green, MESH_TYPE_UNIT_GREEN, state);
+		game_draw_mesh(pos_blue, MESH_TYPE_UNIT_BLUE, state);
+		jstring win_string = jstring_create_temporary("YOU WIN", jstring_length("YOU WIN"));
+		jstring instruction_string = jstring_create_temporary("PRESS SPACEBAR", jstring_length("PRESS SPACEBAR"));
+		jstring instruction_string2 = jstring_create_temporary("TO RESTART", jstring_length("TO RESTART"));
+		draw_text_in_buffer_centered(
+			pixel_buffer,
+			pixel_buffer_width,
+			pixel_buffer_height,
+			pixel_buffer_width/2, pixel_buffer_height/2,
+			8, win_string, white);
+		draw_text_in_buffer_centered(
+			pixel_buffer,
+			pixel_buffer_width,
+			pixel_buffer_height,
+			pixel_buffer_width/2, pixel_buffer_height/2 + 8 * 10,
+			8, instruction_string, white);
+		draw_text_in_buffer_centered(
+			pixel_buffer,
+			pixel_buffer_width,
+			pixel_buffer_height,
+			pixel_buffer_width/2, pixel_buffer_height/2 + 16 * 10,
+			8, instruction_string2, white);
+
+		if(input->spacebar == INPUT_BUTTON_STATE_PRESSED)
+		{
+			state->state = STATE_PLAYING;
+			game_initialize_tilemap(state);
+		}
+	
+		return;
+	}
+
 		/* tilemap data */
 	state->memory.tiles = 
-		(i32*)game_memory_allocate(&used_memory, (sizeof(i32) * TILEMAP_WIDTH * TILEMAP_HEIGHT), game_memory, game_memory_size);
+		(tile*)game_memory_allocate(&used_memory, (sizeof(tile) * TILEMAP_WIDTH * TILEMAP_HEIGHT), game_memory, game_memory_size);
 
 	PROFILER_FINISH_TIMING_BLOCK(memory_stuff);
 
@@ -291,11 +472,30 @@ void game_update_and_render(
 	state->timer += state->time_elapsed;
 	state->last_time = read_os_timer();
 
-	const char *str = "WELCOME TO TILEGAME";
-	jstring test_string = 
+	const char *str = "UNITS AVAILABLE TO PLACE";
+	const char *str2 = "ELIMINATE ALL RED TILES AND UNITS";
+	jstring ui_string = 
 		jstring_create_temporary(str, jstring_length(str));
+	jstring ui_string2 = 
+		jstring_create_temporary(str2, jstring_length(str2));
 
-	if(input->mouse_left == INPUT_BUTTON_STATE_PRESSED)
+	jstring blue_count_string = 
+		jstring_create_temporary("BLUE ", jstring_length("BLUE "));
+	jstring green_count_string = 
+		jstring_create_temporary("GREEN ", jstring_length("GREEN "));
+	jstring red_count_string = 
+		jstring_create_temporary("RED ", jstring_length("RED "));
+
+	jstring blue_count = jstring_create_integer(state->memory.blue_count);
+	jstring green_count = jstring_create_integer(state->memory.green_count);
+	jstring red_count = jstring_create_integer(state->memory.red_count);
+
+	_assert(jstring_concatenate_jstring(&blue_count_string, blue_count));
+	_assert(jstring_concatenate_jstring(&green_count_string, green_count));
+	_assert(jstring_concatenate_jstring(&red_count_string, red_count));
+
+	/* TODO: when we click, how to determine which unit to put on the tile ? */
+	if(input->letters[1] == INPUT_BUTTON_STATE_PRESSED)
 	{
 		i32 mouse_x = input->mouse_x;
 		i32 mouse_y = input->mouse_y;
@@ -303,11 +503,64 @@ void game_update_and_render(
 		f32 world_y;
 		screen_to_world(mouse_x, mouse_y, &world_x, &world_y, state);
 
-		i32 tile = tile_from_world_coords(world_x, world_y, state);
-		if(tile != -1)
+		i32 tile_index = tile_from_world_coords(world_x, world_y, state);
+		if(tile_index != -1)
 		{
-			state->memory.tiles[tile] = TILE_TYPE_HAS_GUY;	
+			if(state->memory.blue_count > 0)
+			{
+				if(state->memory.tiles[tile_index].unit_type == UNIT_TYPE_NONE)
+				{
+					state->memory.blue_count--;
+				}
+				game_update_tilemap(tile_index, UNIT_TYPE_BLUE, state);
+			}
 		}
+	}
+	else if(input->letters[6] == INPUT_BUTTON_STATE_PRESSED)
+	{
+		i32 mouse_x = input->mouse_x;
+		i32 mouse_y = input->mouse_y;
+		f32 world_x;
+		f32 world_y;
+		screen_to_world(mouse_x, mouse_y, &world_x, &world_y, state);
+
+		i32 tile_index = tile_from_world_coords(world_x, world_y, state);
+		if(tile_index != -1)
+		{
+			if(state->memory.green_count > 0)
+			{
+				if(state->memory.tiles[tile_index].unit_type == UNIT_TYPE_NONE)
+				{
+					state->memory.green_count--;
+				}
+				game_update_tilemap(tile_index, UNIT_TYPE_GREEN, state);
+			}
+		}
+	}
+	else if(input->letters[17] == INPUT_BUTTON_STATE_PRESSED)
+	{
+		i32 mouse_x = input->mouse_x;
+		i32 mouse_y = input->mouse_y;
+		f32 world_x;
+		f32 world_y;
+		screen_to_world(mouse_x, mouse_y, &world_x, &world_y, state);
+
+		i32 tile_index = tile_from_world_coords(world_x, world_y, state);
+		if(tile_index != -1)
+		{
+			if(state->memory.red_count > 0)
+			{
+				if(state->memory.tiles[tile_index].unit_type == UNIT_TYPE_NONE)
+				{
+					state->memory.red_count--;
+				}
+				game_update_tilemap(tile_index, UNIT_TYPE_RED, state);
+			}
+		}
+	}
+	else if(input->spacebar == INPUT_BUTTON_STATE_PRESSED)
+	{
+		game_initialize_tilemap(state);
 	}
 
 	PROFILER_FINISH_TIMING_BLOCK(update);
@@ -323,14 +576,49 @@ void game_update_and_render(
 
 	game_draw_tilemap(state);
 
-	draw_text_in_buffer_centered(
+	draw_text_in_buffer(
 		pixel_buffer,
 		pixel_buffer_width, 
 		pixel_buffer_height,
-		200, 20, 
+		10, 40, 
 		2,
-		test_string,
+		ui_string,
 		white);
+	draw_text_in_buffer(
+		pixel_buffer,
+		pixel_buffer_width, 
+		pixel_buffer_height,
+		10, 10, 
+		2,
+		ui_string2,
+		white);
+
+	draw_text_in_buffer(
+		pixel_buffer,
+		pixel_buffer_width, 
+		pixel_buffer_height,
+		10, 70, 
+		2,
+		blue_count_string,
+		cyan);
+
+	draw_text_in_buffer(
+		pixel_buffer,
+		pixel_buffer_width, 
+		pixel_buffer_height,
+		10, 100, 
+		2,
+		green_count_string,
+		yellow);
+
+	draw_text_in_buffer(
+		pixel_buffer,
+		pixel_buffer_width, 
+		pixel_buffer_height,
+		10, 130, 
+		2,
+		red_count_string,
+		orange);
 
 
 	PROFILER_FINISH_TIMING_BLOCK(render);
@@ -344,61 +632,285 @@ void game_update_and_render(
 
 static b32 game_initialize_meshes(game_state *state)
 {
-	state->memory.mesh_data[MESH_TYPE_TILE_EMPTY].positions = state->memory.vertex_position_data + state->memory.vertex_count;
-	state->memory.mesh_data[MESH_TYPE_TILE_EMPTY].colors = state->memory.vertex_color_data + state->memory.vertex_count;
+	state->memory.mesh_data[MESH_TYPE_TILE_BASIC].positions = state->memory.vertex_position_data + state->memory.vertex_count;
+	state->memory.mesh_data[MESH_TYPE_TILE_BASIC].colors = state->memory.vertex_color_data + state->memory.vertex_count;
 
 	/* TODO: index-based rendering, then only need 4 vertices */
 	/* TODO: read meshes from files */
-	state->memory.mesh_data[MESH_TYPE_TILE_EMPTY].vertex_count = 6;
-	state->memory.mesh_data[MESH_TYPE_TILE_EMPTY].positions[0].x = 0.5f;
-	state->memory.mesh_data[MESH_TYPE_TILE_EMPTY].positions[0].y = 0.5f;
-	state->memory.mesh_data[MESH_TYPE_TILE_EMPTY].positions[1].x =-0.5f;
-	state->memory.mesh_data[MESH_TYPE_TILE_EMPTY].positions[1].y = 0.5f;
-	state->memory.mesh_data[MESH_TYPE_TILE_EMPTY].positions[2].x = 0.5f;
-	state->memory.mesh_data[MESH_TYPE_TILE_EMPTY].positions[2].y =-0.5f;
-	state->memory.mesh_data[MESH_TYPE_TILE_EMPTY].positions[3].x = 0.5f;
-	state->memory.mesh_data[MESH_TYPE_TILE_EMPTY].positions[3].y =-0.5f;
-	state->memory.mesh_data[MESH_TYPE_TILE_EMPTY].positions[4].x =-0.5f;
-	state->memory.mesh_data[MESH_TYPE_TILE_EMPTY].positions[4].y = 0.5f;
-	state->memory.mesh_data[MESH_TYPE_TILE_EMPTY].positions[5].x =-0.5f;
-	state->memory.mesh_data[MESH_TYPE_TILE_EMPTY].positions[5].y =-0.5f;
+	state->memory.mesh_data[MESH_TYPE_TILE_BASIC].vertex_count = 6;
+	state->memory.mesh_data[MESH_TYPE_TILE_BASIC].positions[0].x = 0.5f;
+	state->memory.mesh_data[MESH_TYPE_TILE_BASIC].positions[0].y = 0.5f;
+	state->memory.mesh_data[MESH_TYPE_TILE_BASIC].positions[1].x =-0.5f;
+	state->memory.mesh_data[MESH_TYPE_TILE_BASIC].positions[1].y = 0.5f;
+	state->memory.mesh_data[MESH_TYPE_TILE_BASIC].positions[2].x = 0.5f;
+	state->memory.mesh_data[MESH_TYPE_TILE_BASIC].positions[2].y =-0.5f;
+	state->memory.mesh_data[MESH_TYPE_TILE_BASIC].positions[3].x = 0.5f;
+	state->memory.mesh_data[MESH_TYPE_TILE_BASIC].positions[3].y =-0.5f;
+	state->memory.mesh_data[MESH_TYPE_TILE_BASIC].positions[4].x =-0.5f;
+	state->memory.mesh_data[MESH_TYPE_TILE_BASIC].positions[4].y = 0.5f;
+	state->memory.mesh_data[MESH_TYPE_TILE_BASIC].positions[5].x =-0.5f;
+	state->memory.mesh_data[MESH_TYPE_TILE_BASIC].positions[5].y =-0.5f;
 
-	state->memory.mesh_data[MESH_TYPE_TILE_EMPTY].colors[0] = cyan4;
-	state->memory.mesh_data[MESH_TYPE_TILE_EMPTY].colors[1] = cyan4;
-	state->memory.mesh_data[MESH_TYPE_TILE_EMPTY].colors[2] = cyan4;
-	state->memory.mesh_data[MESH_TYPE_TILE_EMPTY].colors[3] = cyan4;
-	state->memory.mesh_data[MESH_TYPE_TILE_EMPTY].colors[4] = cyan4;
-	state->memory.mesh_data[MESH_TYPE_TILE_EMPTY].colors[5] = black4;
+	state->memory.mesh_data[MESH_TYPE_TILE_BASIC].colors[0] = white4;
+	state->memory.mesh_data[MESH_TYPE_TILE_BASIC].colors[1] = white4;
+	state->memory.mesh_data[MESH_TYPE_TILE_BASIC].colors[2] = white4;
+	state->memory.mesh_data[MESH_TYPE_TILE_BASIC].colors[3] = white4;
+	state->memory.mesh_data[MESH_TYPE_TILE_BASIC].colors[4] = white4;
+	state->memory.mesh_data[MESH_TYPE_TILE_BASIC].colors[5] = black4;
 
-	state->memory.vertex_count += state->memory.mesh_data[MESH_TYPE_TILE_EMPTY].vertex_count;
+	state->memory.vertex_count += state->memory.mesh_data[MESH_TYPE_TILE_BASIC].vertex_count;
 
-	state->memory.mesh_data[MESH_TYPE_GUY].positions = state->memory.vertex_position_data + state->memory.vertex_count;
-	state->memory.mesh_data[MESH_TYPE_GUY].colors = state->memory.vertex_color_data + state->memory.vertex_count;
+	state->memory.mesh_data[MESH_TYPE_TILE_RED].positions = 
+		state->memory.mesh_data[MESH_TYPE_TILE_BASIC].positions;
+	state->memory.mesh_data[MESH_TYPE_TILE_RED].colors = state->memory.vertex_color_data + state->memory.vertex_count;
+	state->memory.mesh_data[MESH_TYPE_TILE_RED].vertex_count = 6;
 
-	state->memory.mesh_data[MESH_TYPE_GUY].vertex_count = 6;
-	state->memory.mesh_data[MESH_TYPE_GUY].positions[0].x = 0.4f;
-	state->memory.mesh_data[MESH_TYPE_GUY].positions[0].y = 0.4f;
-	state->memory.mesh_data[MESH_TYPE_GUY].positions[1].x =-0.4f;
-	state->memory.mesh_data[MESH_TYPE_GUY].positions[1].y = 0.4f;
-	state->memory.mesh_data[MESH_TYPE_GUY].positions[2].x = 0.4f;
-	state->memory.mesh_data[MESH_TYPE_GUY].positions[2].y =-0.4f;
-	state->memory.mesh_data[MESH_TYPE_GUY].positions[3].x = 0.4f;
-	state->memory.mesh_data[MESH_TYPE_GUY].positions[3].y =-0.4f;
-	state->memory.mesh_data[MESH_TYPE_GUY].positions[4].x =-0.4f;
-	state->memory.mesh_data[MESH_TYPE_GUY].positions[4].y = 0.4f;
-	state->memory.mesh_data[MESH_TYPE_GUY].positions[5].x =-0.4f;
-	state->memory.mesh_data[MESH_TYPE_GUY].positions[5].y =-0.4f;
+	state->memory.mesh_data[MESH_TYPE_TILE_RED].colors[0] = red4;
+	state->memory.mesh_data[MESH_TYPE_TILE_RED].colors[1] = red4;
+	state->memory.mesh_data[MESH_TYPE_TILE_RED].colors[2] = red4;
+	state->memory.mesh_data[MESH_TYPE_TILE_RED].colors[3] = red4;
+	state->memory.mesh_data[MESH_TYPE_TILE_RED].colors[4] = red4;
+	state->memory.mesh_data[MESH_TYPE_TILE_RED].colors[5] = black4;
 
-	state->memory.mesh_data[MESH_TYPE_GUY].colors[0] = white4;
-	state->memory.mesh_data[MESH_TYPE_GUY].colors[1] = red4;
-	state->memory.mesh_data[MESH_TYPE_GUY].colors[2] = red4;
-	state->memory.mesh_data[MESH_TYPE_GUY].colors[3] = red4;
-	state->memory.mesh_data[MESH_TYPE_GUY].colors[4] = red4;
-	state->memory.mesh_data[MESH_TYPE_GUY].colors[5] = red4;
+	state->memory.vertex_count += state->memory.mesh_data[MESH_TYPE_TILE_RED].vertex_count;
 
-	state->memory.vertex_count += state->memory.mesh_data[MESH_TYPE_GUY].vertex_count;
+	state->memory.mesh_data[MESH_TYPE_TILE_GREEN].positions = 
+		state->memory.mesh_data[MESH_TYPE_TILE_BASIC].positions;
+	state->memory.mesh_data[MESH_TYPE_TILE_GREEN].colors = state->memory.vertex_color_data + state->memory.vertex_count;
+	state->memory.mesh_data[MESH_TYPE_TILE_GREEN].vertex_count = 6;
+
+	state->memory.mesh_data[MESH_TYPE_TILE_GREEN].colors[0] = green4;
+	state->memory.mesh_data[MESH_TYPE_TILE_GREEN].colors[1] = green4;
+	state->memory.mesh_data[MESH_TYPE_TILE_GREEN].colors[2] = green4;
+	state->memory.mesh_data[MESH_TYPE_TILE_GREEN].colors[3] = green4;
+	state->memory.mesh_data[MESH_TYPE_TILE_GREEN].colors[4] = green4;
+	state->memory.mesh_data[MESH_TYPE_TILE_GREEN].colors[5] = black4;
+
+	state->memory.vertex_count += state->memory.mesh_data[MESH_TYPE_TILE_GREEN].vertex_count;
+
+	state->memory.mesh_data[MESH_TYPE_UNIT_RED].positions = state->memory.vertex_position_data + state->memory.vertex_count;
+	state->memory.mesh_data[MESH_TYPE_UNIT_RED].colors = state->memory.vertex_color_data + state->memory.vertex_count;
+
+	state->memory.mesh_data[MESH_TYPE_UNIT_RED].vertex_count = 6;
+	state->memory.mesh_data[MESH_TYPE_UNIT_RED].positions[0].x = 0.4f;
+	state->memory.mesh_data[MESH_TYPE_UNIT_RED].positions[0].y = 0.4f;
+	state->memory.mesh_data[MESH_TYPE_UNIT_RED].positions[1].x =-0.4f;
+	state->memory.mesh_data[MESH_TYPE_UNIT_RED].positions[1].y = 0.4f;
+	state->memory.mesh_data[MESH_TYPE_UNIT_RED].positions[2].x = 0.4f;
+	state->memory.mesh_data[MESH_TYPE_UNIT_RED].positions[2].y =-0.4f;
+	state->memory.mesh_data[MESH_TYPE_UNIT_RED].positions[3].x = 0.4f;
+	state->memory.mesh_data[MESH_TYPE_UNIT_RED].positions[3].y =-0.4f;
+	state->memory.mesh_data[MESH_TYPE_UNIT_RED].positions[4].x =-0.4f;
+	state->memory.mesh_data[MESH_TYPE_UNIT_RED].positions[4].y = 0.4f;
+	state->memory.mesh_data[MESH_TYPE_UNIT_RED].positions[5].x =-0.4f;
+	state->memory.mesh_data[MESH_TYPE_UNIT_RED].positions[5].y =-0.4f;
+
+	state->memory.mesh_data[MESH_TYPE_UNIT_RED].colors[0] = white4;
+	state->memory.mesh_data[MESH_TYPE_UNIT_RED].colors[1] = red4;
+	state->memory.mesh_data[MESH_TYPE_UNIT_RED].colors[2] = red4;
+	state->memory.mesh_data[MESH_TYPE_UNIT_RED].colors[3] = red4;
+	state->memory.mesh_data[MESH_TYPE_UNIT_RED].colors[4] = red4;
+	state->memory.mesh_data[MESH_TYPE_UNIT_RED].colors[5] = red4;
+
+	state->memory.vertex_count += state->memory.mesh_data[MESH_TYPE_UNIT_RED].vertex_count;
+
+	state->memory.mesh_data[MESH_TYPE_UNIT_BLUE].positions = 
+		state->memory.mesh_data[MESH_TYPE_UNIT_RED].positions;
+	state->memory.mesh_data[MESH_TYPE_UNIT_BLUE].colors = state->memory.vertex_color_data + state->memory.vertex_count;
+
+	state->memory.mesh_data[MESH_TYPE_UNIT_BLUE].vertex_count = 6;
+
+	state->memory.mesh_data[MESH_TYPE_UNIT_BLUE].colors[0] = white4;
+	state->memory.mesh_data[MESH_TYPE_UNIT_BLUE].colors[1] = blue4;
+	state->memory.mesh_data[MESH_TYPE_UNIT_BLUE].colors[2] = blue4;
+	state->memory.mesh_data[MESH_TYPE_UNIT_BLUE].colors[3] = blue4;
+	state->memory.mesh_data[MESH_TYPE_UNIT_BLUE].colors[4] = blue4;
+	state->memory.mesh_data[MESH_TYPE_UNIT_BLUE].colors[5] = blue4;
+
+	state->memory.vertex_count += state->memory.mesh_data[MESH_TYPE_UNIT_BLUE].vertex_count;
+
+	state->memory.mesh_data[MESH_TYPE_UNIT_GREEN].positions = 
+		state->memory.mesh_data[MESH_TYPE_UNIT_RED].positions;
+	state->memory.mesh_data[MESH_TYPE_UNIT_GREEN].colors = state->memory.vertex_color_data + state->memory.vertex_count;
+
+	state->memory.mesh_data[MESH_TYPE_UNIT_GREEN].vertex_count = 6;
+
+	state->memory.mesh_data[MESH_TYPE_UNIT_GREEN].colors[0] = white4;
+	state->memory.mesh_data[MESH_TYPE_UNIT_GREEN].colors[1] = green4;
+	state->memory.mesh_data[MESH_TYPE_UNIT_GREEN].colors[2] = green4;
+	state->memory.mesh_data[MESH_TYPE_UNIT_GREEN].colors[3] = green4;
+	state->memory.mesh_data[MESH_TYPE_UNIT_GREEN].colors[4] = green4;
+	state->memory.mesh_data[MESH_TYPE_UNIT_GREEN].colors[5] = green4;
+
+	state->memory.vertex_count += state->memory.mesh_data[MESH_TYPE_UNIT_GREEN].vertex_count;
 
 	LOG_TRACE("game initialize meshes finished (vertex count: %u)", state->memory.vertex_count);
 	_assert(state->memory.vertex_count <= MAX_VERTICES);
 	return(true);
+}
+
+/* NOTE(josh): this should recursively call itself in cases where a unit/tile change should have compounding effects 
+ * otherwise the game is prob not interesting at all if the affect only applies directly from the tile passed in here
+ */
+/* NOTE(josh):
+ * we want this update logic to be as flexible as possible and based on the _behvaior of the tiles/units that we specify
+ * when deciding rules (i.e. don't hardcode the logic have the logic be flexible to changes in _behavior of tiles/units)
+ */
+/* TODO(josh): at some point, we want to have some way to progress this function by 1 step per frame so that the results are like
+ * animated, if that makes sense 
+ */
+static void game_update_tilemap(i32 tile_index, i32 unit_type, game_state *state)
+{
+	tile *t = &(state->memory.tiles[tile_index]);
+	if(t->unit_type != UNIT_TYPE_NONE)
+	{
+		return;
+	}
+	t->unit_type = unit_type;
+
+
+	/* placed unit affects tile */
+	switch(t->unit_type)
+	{
+		case UNIT_TYPE_NONE:
+		{
+			/* do nothing */
+		} break;
+		case UNIT_TYPE_RED:
+		{
+			t->tile_type = TILE_TYPE_RED;
+		} break;
+		case UNIT_TYPE_BLUE:
+		{
+			t->tile_type = TILE_TYPE_BASIC;
+		} break;
+		case UNIT_TYPE_GREEN:
+		{
+			t->tile_type = TILE_TYPE_GREEN;
+		} break;
+		default:
+		{
+			_assert(0);
+		} break;
+	}
+
+	/* tile affects target tiles */
+	tile_behavior behavior;
+	switch(t->tile_type)
+	{
+		case TILE_TYPE_BASIC:
+		{
+			/* do nothing */
+			behavior = tile_type_basic_behavior;
+		} break;
+		case TILE_TYPE_RED:
+		{
+			behavior = tile_type_red_behavior;
+		} break;
+		case TILE_TYPE_GREEN:
+		{
+			behavior = tile_type_green_behavior;
+		} break;
+		default:
+		{
+			_assert(0);
+		} break;
+	}
+	game_update_tilemap_from_tile_behavior(tile_index, behavior, state);
+}
+
+static u32 game_check_red_count(game_state *state)
+{
+	u32 result = 0;
+	u32 index = 0;
+	for( ; index < TILEMAP_WIDTH * TILEMAP_HEIGHT; index++)
+	{
+		if(state->memory.tiles[index].unit_type == UNIT_TYPE_RED)
+		{
+			result++;
+			break;
+		}
+		if(state->memory.tiles[index].tile_type == TILE_TYPE_RED)
+		{
+			result++;
+			break;
+		}
+	}
+	return result;
+}
+
+static void game_update_tilemap_from_tile_behavior(i32 tile_index, tile_behavior behavior, game_state *state)
+{
+	i32 target_tile_ids[64];
+	u32 target_count = 0;
+
+	switch(behavior.target_type)
+	{
+		case TARGET_TYPE_ADJACENT_STRAIGHT:
+		{
+
+			target_count = 0;
+
+			if(tile_index % TILEMAP_WIDTH != 0)
+			{
+				/* not on left edge */
+				target_tile_ids[target_count] = tile_index - 1;
+				target_count++;
+			}
+			if(tile_index % TILEMAP_WIDTH != (TILEMAP_WIDTH - 1))
+			{
+				/* not on right edge */
+				target_tile_ids[target_count] = tile_index + 1;
+				target_count++;
+			}
+			if(tile_index >= TILEMAP_WIDTH)
+			{
+				/* not in first row */
+				target_tile_ids[target_count] = tile_index - TILEMAP_WIDTH;
+				target_count++;
+			}
+			if(tile_index < TILEMAP_WIDTH * (TILEMAP_HEIGHT - 1))
+			{
+				/* not in last row */
+				target_tile_ids[target_count] = tile_index + TILEMAP_WIDTH;
+				target_count++;
+			}
+		} break;
+
+		case TARGET_TYPE_NONE:
+		{
+			/* do nothing */
+		} break;
+		/* TODO: all the other TARGET_TYPES */
+
+		default:
+		{
+			_assert(0);
+		}
+	}
+
+	u32 target_index = 0;
+	i32 target;
+	for( ; target_index < target_count; target_index++)
+	{
+		target = target_tile_ids[target_index];	
+		if(target >= 0 && target < TILEMAP_WIDTH * TILEMAP_HEIGHT)
+		{
+			if(state->memory.tiles[target].tile_type != behavior.tile_type_shift_targets)
+			{
+				/* tile is not already what we wanted to shift to */
+				state->memory.tiles[target].tile_type = behavior.tile_type_shift_targets;
+				if(state->memory.tiles[target].unit_type != UNIT_TYPE_NONE)
+				{
+					state->memory.tiles[target].unit_type = behavior.unit_type_shift_targets;
+				}
+			}
+		}
+	}
+
+	u32 red_count = game_check_red_count(state);
+	if(!red_count)
+	{
+		state->state = STATE_WON;
+	}
 }
