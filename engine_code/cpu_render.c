@@ -256,7 +256,7 @@ void draw_mesh(u8 *pixel_buffer, u16 buffer_width, u16 buffer_height, render_mes
 		mesh.vertex_count);
 }
 
-extern void FILL_PIXELS_ASM(u8 *pixel_buffer, u64 count, u32 color_32_bit);
+extern void FILL_PIXELS_ASM(u8 *pixel_buffer, u64 count, void *color_data);
 
 void draw_background_in_buffer_asm(
 		u8 *pixel_buffer,
@@ -264,6 +264,8 @@ void draw_background_in_buffer_asm(
 		u16 buffer_height,
 		struct_rgba_color color) 
 {
+	PROFILER_START_TIMING_BANDWIDTH(clear_background, 
+		(u64)(buffer_width*buffer_height));
 	u64 count = buffer_width * buffer_height;
 
 	/*
@@ -273,11 +275,25 @@ void draw_background_in_buffer_asm(
 					   ((u64)color.b << 24) + ((u64)color.g << 16) + ((u64)color.r << 8) + ((u64)color.a);
 					   */
 
-	u32 color_32_bit = ((u32)color.b << 24) + ((u32)color.g << 16) + ((u32)color.r << 8) + ((u32)color.a);
+	u32 color_32_bit[16]; 
+	u32 index = 0;
+	for( ; index < 16; index++)
+	{
+		color_32_bit[index] = ((u32)color.b << 24) + ((u32)color.g << 16) + ((u32)color.r << 8) + ((u32)color.a);
+	}
 
-	PROFILER_START_TIMING_BANDWIDTH(clear_background, 
-		(u64)(buffer_width*buffer_height));
-	FILL_PIXELS_ASM(pixel_buffer, count, color_32_bit);
+	u64 asm_bytes_to_write = count * 4;
+
+	FILL_PIXELS_ASM(pixel_buffer, asm_bytes_to_write, (void*)color_32_bit);
+
+	/* TODO: draw the remaining pixels 
+	u32 index = 0;
+	for( ; index < (count % 4); index++)
+	{
+
+	}
+	*/
+
 	PROFILER_FINISH_TIMING_BLOCK(clear_background);
 }
 

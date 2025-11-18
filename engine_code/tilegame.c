@@ -369,7 +369,7 @@ void game_update_and_render(
 
 	if(state->state == STATE_WON)
 	{
-		draw_background_in_buffer(pixel_buffer, pixel_buffer_width, pixel_buffer_height, gray);	
+		draw_background_in_buffer_asm(pixel_buffer, pixel_buffer_width, pixel_buffer_height, gray);	
 		vector_2 pos_blue = {7.0f, -3.0f};
 		vector_2 pos_green = {-4.0f, 2.0f};
 		vector_2 pos_red = {3.0f, 3.0f};
@@ -568,7 +568,7 @@ void game_update_and_render(
 	/* render */
 	PROFILER_START_TIMING_BLOCK(render);
 
-	draw_background_in_buffer(
+	draw_background_in_buffer_asm(
 		pixel_buffer,
 		pixel_buffer_width, 
 		pixel_buffer_height,
@@ -619,7 +619,6 @@ void game_update_and_render(
 		2,
 		red_count_string,
 		orange);
-
 
 	PROFILER_FINISH_TIMING_BLOCK(render);
 	if(state->timer > 2000000.0)

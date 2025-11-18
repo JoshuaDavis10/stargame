@@ -29,7 +29,7 @@ typedef double f64;
 #include "linux_util.c"
 #include "xcb_input.c" /* NOTE: my xcb input utils file */
 
-#define FRAME_RATE (30.0)
+#define FRAME_RATE (20.0)
 #define FRAME_TIME (u64)((1.0/FRAME_RATE) * (f64)MICROSECS_PER_SEC) /* microseconds */
 
 /* TODO: platform state struct */
@@ -104,12 +104,9 @@ int main(int argc, char **argv)
 		}
 	}
 	_assert(x_screen);
-	x_global_window_width = 1920;
-	x_global_window_height = 1080;
-	/*
-	x_global_window_width = x_screen->width_in_pixels;
 	x_global_window_height = x_screen->height_in_pixels;
-	*/
+	x_global_window_width = 16 * x_global_window_height / 9;
+
 	x_global_pixel_buffer_x = (x_screen->width_in_pixels - x_global_window_width) / 2;
 	x_global_pixel_buffer_y = (x_screen->height_in_pixels - x_global_window_height) / 2;
 
