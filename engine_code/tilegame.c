@@ -64,6 +64,31 @@ typedef struct {
 	i32 unit_type_shift_targets;
 } tile_behavior;
 
+/* TODO(josh): this basically describes 
+ * the steps of a move so that the game can
+ * render each step at various timesteps
+ * after the move has been made
+ * this should get generated immediately when
+ * the unit is placed, be stored in game state
+ * and then the game is in like "step" mode or smn
+ * and an if statement checks for that, and does the
+ * next step
+ */
+enum {
+	MOVE_STEP_PLACE_UNIT,
+	MOVE_STEP_PLACE_CHANGE_TILE,
+	MOVE_STEP_PLACE_CHANGE_TARGET,
+	MOVE_STEP_PLACE_CHANGE_TARGET_UNIT,
+	MOVE_STEP_COUNT
+};
+typedef struct {
+	i32 current_step; /* NOTE(josh): so we know which step of the process we are on */
+	i32 placed_unit_type;
+	i32 placed_tile_type;
+	i32 placed_tile_index;
+	/* NOTE(josh): ^ that should be all the necessary info to carry out the move */
+} move_steps;
+
 /* TODO: this should be a table of some sort so it can be indexed by tile_type enum */
 static const tile_behavior tile_type_basic_behavior = {TARGET_TYPE_ADJACENT_STRAIGHT, TILE_TYPE_BASIC, UNIT_TYPE_RED};
 static const tile_behavior tile_type_red_behavior = {TARGET_TYPE_ADJACENT_STRAIGHT, TILE_TYPE_RED, UNIT_TYPE_BLUE};
@@ -158,8 +183,13 @@ static b32 game_initialize_tilemap(game_state *state)
 	}
 	state->memory.tiles[3].tile_type = TILE_TYPE_RED;
 	state->memory.tiles[3].unit_type = UNIT_TYPE_BLUE;
+	state->memory.tiles[2].tile_type = TILE_TYPE_GREEN;
+	state->memory.tiles[4].tile_type = TILE_TYPE_GREEN;
+	state->memory.tiles[20].tile_type = TILE_TYPE_GREEN;
 	state->memory.tiles[30].tile_type = TILE_TYPE_RED;
 	state->memory.tiles[30].unit_type = UNIT_TYPE_BLUE;
+	state->memory.tiles[22].tile_type = TILE_TYPE_GREEN;
+	state->memory.tiles[38].tile_type = TILE_TYPE_GREEN;
 
 	state->memory.tile_stride = 1.0f;
 	state->memory.tilemap_offset_x = -3.5f;
@@ -777,14 +807,27 @@ static void game_update_tilemap(i32 tile_index, i32 unit_type, game_state *state
 		} break;
 		case UNIT_TYPE_RED:
 		{
+			if(t->tile_type == TILE_TYPE_RED)
+			{
+				return;
+			}
 			t->tile_type = TILE_TYPE_RED;
 		} break;
 		case UNIT_TYPE_BLUE:
 		{
+			if(t->tile_type == TILE_TYPE_BASIC)
+			{
+				return;
+			}
 			t->tile_type = TILE_TYPE_BASIC;
 		} break;
 		case UNIT_TYPE_GREEN:
 		{
+
+			if(t->tile_type == TILE_TYPE_GREEN)
+			{
+				return;
+			}
 			t->tile_type = TILE_TYPE_GREEN;
 		} break;
 		default:
