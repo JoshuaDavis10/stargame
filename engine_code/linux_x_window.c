@@ -105,8 +105,8 @@ int main(int argc, char **argv)
 	}
 	_assert(x_screen);
 
-	x_global_window_width = 1920;
-	x_global_window_height = 1080;
+	x_global_window_width = 896;
+	x_global_window_height = 504;
 
 	/*
 	x_global_window_height = x_screen->height_in_pixels;

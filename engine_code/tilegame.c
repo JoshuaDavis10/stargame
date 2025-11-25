@@ -12,7 +12,7 @@
 #define TILEMAP_WIDTH 4 
 #define TILEMAP_HEIGHT TILEMAP_WIDTH
 
-#define FONTSIZE 2
+#define FONTSIZE 1
 
 #define STEP_TIME 500000.0
 
@@ -789,7 +789,7 @@ void game_update_and_render(
 		pixel_buffer,
 		pixel_buffer_width, 
 		pixel_buffer_height,
-		10, 40, 
+		10, 25, 
 		FONTSIZE,
 		ui_string,
 		white);
@@ -806,7 +806,7 @@ void game_update_and_render(
 		pixel_buffer,
 		pixel_buffer_width, 
 		pixel_buffer_height,
-		10, 70, 
+		10, 40, 
 		FONTSIZE,
 		blue_count_string,
 		blue);
@@ -815,7 +815,7 @@ void game_update_and_render(
 		pixel_buffer,
 		pixel_buffer_width, 
 		pixel_buffer_height,
-		10, 100, 
+		10, 55, 
 		FONTSIZE,
 		green_count_string,
 		green);
@@ -824,7 +824,7 @@ void game_update_and_render(
 		pixel_buffer,
 		pixel_buffer_width, 
 		pixel_buffer_height,
-		10, 130, 
+		10, 70, 
 		FONTSIZE,
 		red_count_string,
 		red);
@@ -836,7 +836,7 @@ void game_update_and_render(
 			pixel_buffer,
 			pixel_buffer_width, 
 			pixel_buffer_height,
-			10, 160, 
+			10, 85, 
 			FONTSIZE,
 			move_string,
 			red);
