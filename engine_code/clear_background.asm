@@ -11,7 +11,7 @@ FILL_PIXELS_ASM:
 	align 64
 .loop:
 	vmovdqu ymm0, [rdx]
-	vmovdqu [rdi + rax], ymm0
+    vmovdqu [rdi + rax], ymm0
 	add rax, 32
 	cmp rax, rsi
 	jb .loop

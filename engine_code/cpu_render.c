@@ -265,7 +265,7 @@ void draw_background_in_buffer_asm(
 		struct_rgba_color color) 
 {
 	PROFILER_START_TIMING_BANDWIDTH(clear_background, 
-		(u64)(buffer_width*buffer_height));
+		(u64)(buffer_width*buffer_height*4));
 	u64 count = buffer_width * buffer_height;
 
 	/*
@@ -275,9 +275,9 @@ void draw_background_in_buffer_asm(
 					   ((u64)color.b << 24) + ((u64)color.g << 16) + ((u64)color.r << 8) + ((u64)color.a);
 					   */
 
-	u32 color_32_bit[16]; 
+	u32 color_32_bit[8]; 
 	u32 index = 0;
-	for( ; index < 16; index++)
+	for( ; index < 8; index++)
 	{
 		color_32_bit[index] = ((u32)color.b << 24) + ((u32)color.g << 16) + ((u32)color.r << 8) + ((u32)color.a);
 	}
@@ -305,7 +305,7 @@ void draw_background_in_buffer(
 {
 
 	PROFILER_START_TIMING_BANDWIDTH(clear_background, 
-		(u64)(buffer_width*buffer_height));
+		(u64)(buffer_width*buffer_height*4));
 	pixel_buffer[0] = color.b;
 	pixel_buffer[1] = color.g;
 	pixel_buffer[2] = color.r;
@@ -1048,6 +1048,15 @@ void draw_character_in_buffer(
 			13, 20, 34, 40, 46, 45, 44, 43};
 			u8 counter;
 			for(counter = 0; counter < 21; counter++)
+			{
+				pixels[values[counter]] = true;
+			}
+		} break;
+		case '.':
+		{
+			u8 values[9] = { 44, 45, 46, 37, 38, 39, 30, 31, 32 };
+			u8 counter;
+			for(counter = 0; counter < 9; counter++)
 			{
 				pixels[values[counter]] = true;
 			}

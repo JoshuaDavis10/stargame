@@ -9,10 +9,12 @@
 #define MAX_VERTICES 512
 #define JSTRING_MEMORY_SIZE 2048
 
-#define TILEMAP_WIDTH 3
-#define TILEMAP_HEIGHT 3 
+#define TILEMAP_WIDTH 8 
+#define TILEMAP_HEIGHT 8 
 
 #define FONTSIZE 2
+
+#define STEP_TIME 500000.0
 
 static const char *unit_type_red_label = "RED";
 static const char *unit_type_green_label = "GREEN";
@@ -20,11 +22,13 @@ static const char *unit_type_blue_label = "BLUE";
 static const char *tile_type_blue_label = "BLUE";
 static const char *tile_type_red_label = "RED";
 static const char *tile_type_green_label = "GREEN";
+static const char *tile_type_transitioning_label = "...";
 
 enum {
 	TILE_TYPE_BLUE,
 	TILE_TYPE_RED,
 	TILE_TYPE_GREEN,
+	TILE_TYPE_TRANSITIONING,
 	TILE_TYPE_COUNT
 };
 
@@ -39,6 +43,8 @@ enum {
 typedef struct {
 	i32 tile_type;
 	i32 unit_type;
+	i32 transition_tile_type_to; /* NOTE(josh): ignored unless tile type is TILE_TYPE_TRANSITIONING */
+	i32 transition_tile_type_from; /* NOTE(josh): ignored unless tile type is TILE_TYPE_TRANSITIONING */
 } tile;
 
 enum {
@@ -85,14 +91,15 @@ typedef struct {
 
 static const tile_behavior tile_behavior_list[TILE_TYPE_COUNT] = {
 	{TARGET_TYPE_ADJACENT_STRAIGHT, TILE_TYPE_GREEN, UNIT_TYPE_RED}, /* blue */
-	{TARGET_TYPE_ADJACENT_STRAIGHT, TILE_TYPE_BLUE, UNIT_TYPE_GREEN}, /* red */
-	{TARGET_TYPE_ADJACENT_STRAIGHT, TILE_TYPE_RED, UNIT_TYPE_NONE}  /* green */
+	{TARGET_TYPE_ADJACENT_STRAIGHT, TILE_TYPE_RED, UNIT_TYPE_NONE}, /* red */
+	{TARGET_TYPE_ADJACENT_STRAIGHT, TILE_TYPE_RED, UNIT_TYPE_RED}  /* green */
 };
 
 typedef enum {
 	MESH_TYPE_TILE_BLUE,
 	MESH_TYPE_TILE_RED,
 	MESH_TYPE_TILE_GREEN,
+	MESH_TYPE_TILE_TRANSITIONING,
 	MESH_TYPE_UNIT_RED,
 	MESH_TYPE_UNIT_GREEN,
 	MESH_TYPE_UNIT_BLUE,
@@ -115,6 +122,10 @@ typedef struct {
 typedef struct {
 	void *jstring_memory;
 	render_mesh *mesh_data;
+	/* TODO: vertex data should just be packed together instead of sep
+	 * cuz currently each drawn triangle is reading from 2 very disparate places
+	 * in mem?
+	 */
 	vector_2 *vertex_position_data;
 	vector_4 *vertex_color_data;
 	u32 vertex_count;
@@ -180,16 +191,19 @@ static b32 game_initialize_tilemap(game_state *state)
 		state->memory.tiles[index].tile_type = TILE_TYPE_BLUE;
 		state->memory.tiles[index].unit_type = UNIT_TYPE_NONE;
 	}
-	state->memory.tiles[1].tile_type = TILE_TYPE_RED;
-	state->memory.tiles[1].unit_type = UNIT_TYPE_RED;
+	state->memory.tiles[3].tile_type = TILE_TYPE_RED;
+	state->memory.tiles[9].tile_type = TILE_TYPE_GREEN;
+	state->memory.tiles[11].tile_type = TILE_TYPE_GREEN;
+	state->memory.tiles[3].unit_type = UNIT_TYPE_RED;
 	state->memory.tiles[4].tile_type = TILE_TYPE_GREEN;
+	state->memory.tiles[5].tile_type = TILE_TYPE_RED;
 
 	state->memory.tile_stride = 8.0f / TILEMAP_WIDTH;
 	state->memory.tilemap_offset_x = -(state->memory.tile_stride * TILEMAP_WIDTH/2 - state->memory.tile_stride/2);
 	state->memory.tilemap_offset_y = -(state->memory.tile_stride * TILEMAP_WIDTH/2 - state->memory.tile_stride/2);
 
-	state->memory.blue_count = 1;
-	state->memory.green_count = 0;
+	state->memory.blue_count = 3;
+	state->memory.green_count = 1;
 	state->memory.red_count = 0;
 
 	return(true);
@@ -268,11 +282,91 @@ static void game_draw_tilemap(game_state *state)
 					FONTSIZE, text, black);
 				}
 			} break;
+			case TILE_TYPE_TRANSITIONING:
+			{
+				u32  vertex_color_index = 0;
+				for( ; vertex_color_index < state->memory.mesh_data[MESH_TYPE_TILE_TRANSITIONING].vertex_count; vertex_color_index++)
+				{
+					vector_4 color;
+					vector_4 from_color;
+					vector_4 to_color;
+
+					switch(state->memory.tiles[index].transition_tile_type_from)
+					{
+						case TILE_TYPE_BLUE:
+						{
+							from_color = state->memory.mesh_data[MESH_TYPE_TILE_BLUE].colors[vertex_color_index];
+						} break;
+						case TILE_TYPE_GREEN:
+						{
+							from_color = state->memory.mesh_data[MESH_TYPE_TILE_GREEN].colors[vertex_color_index];
+						} break;
+						case TILE_TYPE_RED:
+						{
+							from_color = state->memory.mesh_data[MESH_TYPE_TILE_RED].colors[vertex_color_index];
+						} break;
+						default:
+						{
+							_assert(0);
+						} break;
+					}
+
+					switch(state->memory.tiles[index].transition_tile_type_to)
+					{
+						case TILE_TYPE_BLUE:
+						{
+							to_color = state->memory.mesh_data[MESH_TYPE_TILE_BLUE].colors[vertex_color_index];
+						} break;
+						case TILE_TYPE_GREEN:
+						{
+							to_color = state->memory.mesh_data[MESH_TYPE_TILE_GREEN].colors[vertex_color_index];
+						} break;
+						case TILE_TYPE_RED:
+						{
+							to_color = state->memory.mesh_data[MESH_TYPE_TILE_RED].colors[vertex_color_index];
+						} break;
+						default:
+						{
+							_assert(0);
+						} break;
+					}
+
+					f64 elapsed = read_os_timer() - state->memory.move.time_of_last_step_us;
+					f64 normalized_elapsed = (elapsed / STEP_TIME) * (elapsed / STEP_TIME);
+					if(normalized_elapsed > 1.0f)
+					{
+						normalized_elapsed = 1.0f;
+					}
+					color.x = from_color.x + ((to_color.x - from_color.x) * normalized_elapsed);
+					color.y = from_color.y + ((to_color.y - from_color.y) * normalized_elapsed);
+					color.z = from_color.z + ((to_color.z - from_color.z) * normalized_elapsed);
+					color.w = from_color.w + ((to_color.w - from_color.w) * normalized_elapsed);
+
+					state->memory.mesh_data[MESH_TYPE_TILE_TRANSITIONING].colors[vertex_color_index] = color;
+				}
+
+				game_draw_mesh(pos, MESH_TYPE_TILE_TRANSITIONING, state);
+
+				if(state->memory.tiles[index].unit_type == UNIT_TYPE_NONE)
+				{
+				i32 screen_x, screen_y;
+				jstring text = jstring_create_temporary(tile_type_transitioning_label, jstring_length(tile_type_transitioning_label));
+				world_to_screen(pos.x, pos.y, &screen_x, &screen_y, state);
+				draw_text_in_buffer_centered(
+					state->pixel_buffer,
+					state->pixel_buffer_width,
+					state->pixel_buffer_height,
+					screen_x, screen_y,
+					FONTSIZE, text, white);
+				}
+
+			} break;
 			default:
 			{
 				_assert(0);
 			} break;
 		}
+
 		switch(state->memory.tiles[index].unit_type)
 		{
 			case UNIT_TYPE_RED:
@@ -665,19 +759,19 @@ void game_update_and_render(
 			pixel_buffer_width,
 			pixel_buffer_height,
 			pixel_buffer_width/2, pixel_buffer_height/2 - 8 * 10,
-			8, win_string, black);
+			8, win_string, green);
 		draw_text_in_buffer_centered(
 			pixel_buffer,
 			pixel_buffer_width,
 			pixel_buffer_height,
 			pixel_buffer_width/2, pixel_buffer_height/2,
-			8, instruction_string, black);
+			8, instruction_string, green);
 		draw_text_in_buffer_centered(
 			pixel_buffer,
 			pixel_buffer_width,
 			pixel_buffer_height,
 			pixel_buffer_width/2, pixel_buffer_height/2 + 8 * 10,
-			8, instruction_string2, black);
+			8, instruction_string2, green);
 
 		if(input->spacebar == INPUT_BUTTON_STATE_PRESSED)
 		{
@@ -752,6 +846,14 @@ static b32 game_initialize_meshes(game_state *state)
 	state->memory.mesh_data[MESH_TYPE_TILE_GREEN].colors[5] = black4;
 
 	state->memory.vertex_count += state->memory.mesh_data[MESH_TYPE_TILE_GREEN].vertex_count;
+
+	state->memory.mesh_data[MESH_TYPE_TILE_TRANSITIONING].positions = 
+		state->memory.mesh_data[MESH_TYPE_TILE_BLUE].positions;
+	state->memory.mesh_data[MESH_TYPE_TILE_TRANSITIONING].colors = state->memory.vertex_color_data + state->memory.vertex_count;
+	state->memory.mesh_data[MESH_TYPE_TILE_TRANSITIONING].vertex_count = 6;
+	/* NOTE(josh): don't need to initialize color data, since anything that draws this mesh will manually set the color data */
+
+	state->memory.vertex_count += state->memory.mesh_data[MESH_TYPE_TILE_TRANSITIONING].vertex_count;
 
 	state->memory.mesh_data[MESH_TYPE_UNIT_RED].positions = state->memory.vertex_position_data + state->memory.vertex_count;
 	state->memory.mesh_data[MESH_TYPE_UNIT_RED].colors = state->memory.vertex_color_data + state->memory.vertex_count;
@@ -860,63 +962,71 @@ static void game_step_through_move(game_state *state)
 			} break;
 		}
 		move->current_step = MOVE_STEP_CHANGE_TILE;
+	}
+
+	if(move->current_step == MOVE_STEP_CHANGE_TILE)
+	{
+		i32 tile = move->placed_tile_index;
+		switch(move->placed_unit_type)
+		{
+			case UNIT_TYPE_BLUE:
+			{
+				if(state->memory.tiles[tile].tile_type != TILE_TYPE_BLUE)
+				{
+					state->memory.tiles[tile].transition_tile_type_from = state->memory.tiles[tile].tile_type;
+					state->memory.tiles[tile].tile_type = TILE_TYPE_TRANSITIONING;
+					state->memory.tiles[tile].transition_tile_type_to = TILE_TYPE_BLUE;
+				}
+				else
+				{
+					state->state = STATE_WAITING_FOR_MOVE;
+				}
+			} break;
+			case UNIT_TYPE_GREEN:
+			{
+				if(state->memory.tiles[tile].tile_type != TILE_TYPE_GREEN)
+				{
+					state->memory.tiles[tile].transition_tile_type_from = state->memory.tiles[tile].tile_type;
+					state->memory.tiles[tile].tile_type = TILE_TYPE_TRANSITIONING;
+					state->memory.tiles[tile].transition_tile_type_to = TILE_TYPE_GREEN;
+				}
+				else
+				{
+					state->state = STATE_WAITING_FOR_MOVE;
+				}
+			} break;
+			case UNIT_TYPE_RED:
+			{
+				if(state->memory.tiles[tile].tile_type != TILE_TYPE_RED)
+				{
+					state->memory.tiles[tile].transition_tile_type_from = state->memory.tiles[tile].tile_type;
+					state->memory.tiles[tile].tile_type = TILE_TYPE_TRANSITIONING;
+					state->memory.tiles[tile].transition_tile_type_to = TILE_TYPE_RED;
+				}
+				else
+				{
+					state->state = STATE_WAITING_FOR_MOVE;
+				}
+			} break;
+			default:
+			{
+				_assert(0);
+			} break;
+		}
+		move->current_step = MOVE_STEP_CHANGE_TARGET;
 		move->time_of_last_step_us = read_os_timer();
 		return;
 	}
 
-	if(elapsed > 300000.0)
+	if(elapsed > STEP_TIME)
 	{
 		switch(move->current_step)
 		{
-			case MOVE_STEP_CHANGE_TILE:
-			{
-				i32 tile = move->placed_tile_index;
-				switch(move->placed_unit_type)
-				{
-					case UNIT_TYPE_BLUE:
-					{
-						if(state->memory.tiles[tile].tile_type != TILE_TYPE_BLUE)
-						{
-							state->memory.tiles[tile].tile_type = TILE_TYPE_BLUE;
-						}
-						else
-						{
-							state->state = STATE_WAITING_FOR_MOVE;
-						}
-					} break;
-					case UNIT_TYPE_GREEN:
-					{
-						if(state->memory.tiles[tile].tile_type != TILE_TYPE_GREEN)
-						{
-							state->memory.tiles[tile].tile_type = TILE_TYPE_GREEN;
-						}
-						else
-						{
-							state->state = STATE_WAITING_FOR_MOVE;
-						}
-					} break;
-					case UNIT_TYPE_RED:
-					{
-						if(state->memory.tiles[tile].tile_type != TILE_TYPE_RED)
-						{
-							state->memory.tiles[tile].tile_type = UNIT_TYPE_RED;
-						}
-						else
-						{
-							state->state = STATE_WAITING_FOR_MOVE;
-						}
-					} break;
-					default:
-					{
-						_assert(0);
-					} break;
-				}
-				move->current_step = MOVE_STEP_CHANGE_TARGET;
-			} break;
 			case MOVE_STEP_CHANGE_TARGET:
 			{
 				i32 tile_index = move->placed_tile_index;
 				tile *placed_tile = &(state->memory.tiles[tile_index]);
+				placed_tile->tile_type = placed_tile->transition_tile_type_to;
 				tile_behavior behavior = tile_behavior_list[placed_tile->tile_type];
 
 				switch(behavior.target_type)
@@ -965,7 +1075,10 @@ static void game_step_through_move(game_state *state)
 					tile *t = &(state->memory.tiles[move->target_tile_ids[index]]);
 					if(t->tile_type != behavior.tile_type_shift_targets)
 					{
-						state->memory.tiles[move->target_tile_ids[index]].tile_type = behavior.tile_type_shift_targets;
+						state->memory.tiles[move->target_tile_ids[index]].transition_tile_type_from = 
+								state->memory.tiles[move->target_tile_ids[index]].tile_type;
+						state->memory.tiles[move->target_tile_ids[index]].tile_type = TILE_TYPE_TRANSITIONING;
+						state->memory.tiles[move->target_tile_ids[index]].transition_tile_type_to = behavior.tile_type_shift_targets;
 						move->target_tile_ids[temp] = move->target_tile_ids[index];
 						temp++;
 					}
@@ -980,6 +1093,7 @@ static void game_step_through_move(game_state *state)
 				for( ; index < move->target_count; index++)
 				{
 					tile *t = &(state->memory.tiles[move->target_tile_ids[index]]);
+					t->tile_type = t->transition_tile_type_to;
 					tile_behavior behavior = tile_behavior_list[t->tile_type];
 
 					if(t->unit_type != behavior.unit_type_shift_targets && t->unit_type != UNIT_TYPE_NONE)
