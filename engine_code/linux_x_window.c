@@ -280,7 +280,7 @@ int main(int argc, char **argv)
 
 	u64 pagesize = sysconf(_SC_PAGESIZE);
 	LOG_DEBUG("pagesize: %u", pagesize);
-	x_global_game_memory_size = 16 * pagesize;
+	x_global_game_memory_size = 4 * pagesize;
 
 	/* NOTE: for some reason MAP_ANONYMOUS was breaking without
 	 * MAP_PRIVATE

@@ -9,8 +9,8 @@
 #define MAX_VERTICES 512
 #define JSTRING_MEMORY_SIZE 2048
 
-#define TILEMAP_WIDTH 8 
-#define TILEMAP_HEIGHT 8 
+#define TILEMAP_WIDTH 4 
+#define TILEMAP_HEIGHT TILEMAP_WIDTH
 
 #define FONTSIZE 2
 
@@ -24,6 +24,19 @@ static const char *tile_type_red_label = "RED";
 static const char *tile_type_green_label = "GREEN";
 static const char *tile_type_transitioning_label = "...";
 
+#define BRIGHT_SKEW_TILE 0.0f
+#define BRIGHT_SKEW_UNIT 0.0f
+#define DARK_SKEW_TILE 0.5f
+#define DARK_SKEW_UNIT 1.0f
+
+static const vector_4 tile_color_blue = {BRIGHT_SKEW_TILE, BRIGHT_SKEW_TILE, DARK_SKEW_TILE, 1.0f};
+static const vector_4 tile_color_red = {DARK_SKEW_TILE, BRIGHT_SKEW_TILE, BRIGHT_SKEW_TILE, 1.0f};
+static const vector_4 tile_color_green = {BRIGHT_SKEW_TILE, DARK_SKEW_TILE, BRIGHT_SKEW_TILE, 1.0f};
+
+static const vector_4 unit_color_blue = {BRIGHT_SKEW_UNIT, BRIGHT_SKEW_UNIT, DARK_SKEW_UNIT, 1.0f};
+static const vector_4 unit_color_red = {DARK_SKEW_UNIT, BRIGHT_SKEW_UNIT, BRIGHT_SKEW_UNIT, 1.0f};
+static const vector_4 unit_color_green = {BRIGHT_SKEW_UNIT, DARK_SKEW_UNIT, BRIGHT_SKEW_UNIT, 1.0f};
+
 enum {
 	TILE_TYPE_BLUE,
 	TILE_TYPE_RED,
@@ -34,17 +47,22 @@ enum {
 
 enum {
 	UNIT_TYPE_NONE,
+	UNIT_TYPE_BLUE,
 	UNIT_TYPE_RED,
 	UNIT_TYPE_GREEN,
-	UNIT_TYPE_BLUE,
+	UNIT_TYPE_TRANSITIONING,
 	UNIT_TYPE_COUNT
 };
 
 typedef struct {
 	i32 tile_type;
 	i32 unit_type;
+
+	/* TODO: how to make it so that there's not all these fields? */
 	i32 transition_tile_type_to; /* NOTE(josh): ignored unless tile type is TILE_TYPE_TRANSITIONING */
 	i32 transition_tile_type_from; /* NOTE(josh): ignored unless tile type is TILE_TYPE_TRANSITIONING */
+	i32 transition_unit_type_to; /* NOTE(josh): ignored unless tile type is UNIT_TYPE_TRANSITIONING */
+	i32 transition_unit_type_from; /* NOTE(josh): ignored unless tile type is UNIT_TYPE_TRANSITIONING*/
 } tile;
 
 enum {
@@ -76,6 +94,7 @@ enum {
 	MOVE_STEP_CHANGE_TILE,
 	MOVE_STEP_CHANGE_TARGET,
 	MOVE_STEP_CHANGE_TARGET_UNIT,
+	MOVE_STEP_ANIMATE_TARGET_UNIT_CHANGE,
 	MOVE_STEP_COUNT
 };
 typedef struct {
@@ -100,9 +119,10 @@ typedef enum {
 	MESH_TYPE_TILE_RED,
 	MESH_TYPE_TILE_GREEN,
 	MESH_TYPE_TILE_TRANSITIONING,
+	MESH_TYPE_UNIT_BLUE,
 	MESH_TYPE_UNIT_RED,
 	MESH_TYPE_UNIT_GREEN,
-	MESH_TYPE_UNIT_BLUE,
+	MESH_TYPE_UNIT_TRANSITIONING,
 	MESH_TYPE_COUNT
 } mesh_type;
 
@@ -191,12 +211,11 @@ static b32 game_initialize_tilemap(game_state *state)
 		state->memory.tiles[index].tile_type = TILE_TYPE_BLUE;
 		state->memory.tiles[index].unit_type = UNIT_TYPE_NONE;
 	}
-	state->memory.tiles[3].tile_type = TILE_TYPE_RED;
-	state->memory.tiles[9].tile_type = TILE_TYPE_GREEN;
-	state->memory.tiles[11].tile_type = TILE_TYPE_GREEN;
-	state->memory.tiles[3].unit_type = UNIT_TYPE_RED;
+	state->memory.tiles[2].tile_type = TILE_TYPE_RED;
 	state->memory.tiles[4].tile_type = TILE_TYPE_GREEN;
-	state->memory.tiles[5].tile_type = TILE_TYPE_RED;
+	state->memory.tiles[6].tile_type = TILE_TYPE_GREEN;
+	state->memory.tiles[2].unit_type = UNIT_TYPE_RED;
+	state->memory.tiles[3].tile_type = TILE_TYPE_GREEN;
 
 	state->memory.tile_stride = 8.0f / TILEMAP_WIDTH;
 	state->memory.tilemap_offset_x = -(state->memory.tile_stride * TILEMAP_WIDTH/2 - state->memory.tile_stride/2);
@@ -262,7 +281,7 @@ static void game_draw_tilemap(game_state *state)
 					state->pixel_buffer_width,
 					state->pixel_buffer_height,
 					screen_x, screen_y,
-					FONTSIZE, text, black);
+					FONTSIZE, text, white);
 				}
 			} break;
 			case TILE_TYPE_GREEN:
@@ -279,7 +298,7 @@ static void game_draw_tilemap(game_state *state)
 					state->pixel_buffer_width,
 					state->pixel_buffer_height,
 					screen_x, screen_y,
-					FONTSIZE, text, black);
+					FONTSIZE, text, white);
 				}
 			} break;
 			case TILE_TYPE_TRANSITIONING:
@@ -349,15 +368,16 @@ static void game_draw_tilemap(game_state *state)
 
 				if(state->memory.tiles[index].unit_type == UNIT_TYPE_NONE)
 				{
-				i32 screen_x, screen_y;
-				jstring text = jstring_create_temporary(tile_type_transitioning_label, jstring_length(tile_type_transitioning_label));
-				world_to_screen(pos.x, pos.y, &screen_x, &screen_y, state);
-				draw_text_in_buffer_centered(
-					state->pixel_buffer,
-					state->pixel_buffer_width,
-					state->pixel_buffer_height,
-					screen_x, screen_y,
-					FONTSIZE, text, white);
+					i32 screen_x, screen_y;
+					jstring text = 
+							jstring_create_temporary(tile_type_transitioning_label, jstring_length(tile_type_transitioning_label));
+					world_to_screen(pos.x, pos.y, &screen_x, &screen_y, state);
+					draw_text_in_buffer_centered(
+						state->pixel_buffer,
+						state->pixel_buffer_width,
+						state->pixel_buffer_height,
+						screen_x, screen_y,
+						FONTSIZE, text, white);
 				}
 
 			} break;
@@ -393,7 +413,7 @@ static void game_draw_tilemap(game_state *state)
 					state->pixel_buffer_width,
 					state->pixel_buffer_height,
 					screen_x, screen_y,
-					FONTSIZE, text, white);
+					FONTSIZE, text, black);
 			} break;
 			case UNIT_TYPE_GREEN:
 			{
@@ -411,6 +431,89 @@ static void game_draw_tilemap(game_state *state)
 			case UNIT_TYPE_NONE:
 			{
 				/* do nothing */
+			} break;
+			case UNIT_TYPE_TRANSITIONING:
+			{
+				u32  vertex_color_index = 0;
+				for( ; vertex_color_index < state->memory.mesh_data[MESH_TYPE_UNIT_TRANSITIONING].vertex_count; vertex_color_index++)
+				{
+					vector_4 color;
+					vector_4 from_color;
+					vector_4 to_color;
+
+					switch(state->memory.tiles[index].transition_unit_type_from)
+					{
+						case UNIT_TYPE_BLUE:
+						{
+							from_color = state->memory.mesh_data[MESH_TYPE_UNIT_BLUE].colors[vertex_color_index];
+						} break;
+						case UNIT_TYPE_GREEN:
+						{
+							from_color = state->memory.mesh_data[MESH_TYPE_UNIT_GREEN].colors[vertex_color_index];
+						} break;
+						case UNIT_TYPE_RED:
+						{
+							from_color = state->memory.mesh_data[MESH_TYPE_UNIT_RED].colors[vertex_color_index];
+						} break;
+						default:
+						{
+							_assert(0);
+						} break;
+					}
+
+					switch(state->memory.tiles[index].transition_unit_type_to)
+					{
+						case UNIT_TYPE_BLUE:
+						{
+							to_color = state->memory.mesh_data[MESH_TYPE_UNIT_BLUE].colors[vertex_color_index];
+						} break;
+						case UNIT_TYPE_GREEN:
+						{
+							to_color = state->memory.mesh_data[MESH_TYPE_UNIT_GREEN].colors[vertex_color_index];
+						} break;
+						case UNIT_TYPE_RED:
+						{
+							to_color = state->memory.mesh_data[MESH_TYPE_UNIT_RED].colors[vertex_color_index];
+						} break;
+						case UNIT_TYPE_NONE:
+						{
+							to_color.x = from_color.x;
+							to_color.y = from_color.y;
+							to_color.z = from_color.z;
+							to_color.w = 0.0f;
+						} break;
+						default:
+						{
+							_assert(0);
+						} break;
+					}
+
+					f64 elapsed = read_os_timer() - state->memory.move.time_of_last_step_us;
+					_assert(elapsed >= 0.0f);
+					f64 normalized_elapsed = (elapsed / STEP_TIME) * (elapsed / STEP_TIME);
+					if(normalized_elapsed > 1.0f)
+					{
+						normalized_elapsed = 1.0f;
+					}
+					color.x = from_color.x + ((to_color.x - from_color.x) * normalized_elapsed);
+					color.y = from_color.y + ((to_color.y - from_color.y) * normalized_elapsed);
+					color.z = from_color.z + ((to_color.z - from_color.z) * normalized_elapsed);
+					color.w = from_color.w + ((to_color.w - from_color.w) * normalized_elapsed);
+
+					state->memory.mesh_data[MESH_TYPE_UNIT_TRANSITIONING].colors[vertex_color_index] = color;
+				}
+
+				game_draw_mesh(pos, MESH_TYPE_UNIT_TRANSITIONING, state);
+				i32 screen_x, screen_y;
+				jstring text = 
+						jstring_create_temporary(tile_type_transitioning_label, jstring_length(tile_type_transitioning_label));
+				world_to_screen(pos.x, pos.y, &screen_x, &screen_y, state);
+				draw_text_in_buffer_centered(
+					state->pixel_buffer,
+					state->pixel_buffer_width,
+					state->pixel_buffer_height,
+					screen_x, screen_y,
+					FONTSIZE, text, black);
 			} break;
 			default:
 			{
@@ -706,7 +809,7 @@ void game_update_and_render(
 		10, 70, 
 		FONTSIZE,
 		blue_count_string,
-		cyan);
+		blue);
 
 	draw_text_in_buffer(
 		pixel_buffer,
@@ -715,7 +818,7 @@ void game_update_and_render(
 		10, 100, 
 		FONTSIZE,
 		green_count_string,
-		yellow);
+		green);
 
 	draw_text_in_buffer(
 		pixel_buffer,
@@ -724,7 +827,7 @@ void game_update_and_render(
 		10, 130, 
 		FONTSIZE,
 		red_count_string,
-		orange);
+		red);
 
 	if(state->state == STATE_STEPPING_THROUGH_MOVE)
 	{
@@ -759,19 +862,19 @@ void game_update_and_render(
 			pixel_buffer_width,
 			pixel_buffer_height,
 			pixel_buffer_width/2, pixel_buffer_height/2 - 8 * 10,
-			8, win_string, green);
+			8, win_string, magenta);
 		draw_text_in_buffer_centered(
 			pixel_buffer,
 			pixel_buffer_width,
 			pixel_buffer_height,
 			pixel_buffer_width/2, pixel_buffer_height/2,
-			8, instruction_string, green);
+			8, instruction_string, magenta);
 		draw_text_in_buffer_centered(
 			pixel_buffer,
 			pixel_buffer_width,
 			pixel_buffer_height,
 			pixel_buffer_width/2, pixel_buffer_height/2 + 8 * 10,
-			8, instruction_string2, green);
+			8, instruction_string2, magenta);
 
 		if(input->spacebar == INPUT_BUTTON_STATE_PRESSED)
 		{
@@ -810,11 +913,11 @@ static b32 game_initialize_meshes(game_state *state)
 	state->memory.mesh_data[MESH_TYPE_TILE_BLUE].positions[5].x =-state->memory.tile_stride/2;
 	state->memory.mesh_data[MESH_TYPE_TILE_BLUE].positions[5].y =-state->memory.tile_stride/2;
 
-	state->memory.mesh_data[MESH_TYPE_TILE_BLUE].colors[0] = blue4;
-	state->memory.mesh_data[MESH_TYPE_TILE_BLUE].colors[1] = blue4;
-	state->memory.mesh_data[MESH_TYPE_TILE_BLUE].colors[2] = blue4;
-	state->memory.mesh_data[MESH_TYPE_TILE_BLUE].colors[3] = blue4;
-	state->memory.mesh_data[MESH_TYPE_TILE_BLUE].colors[4] = blue4;
+	state->memory.mesh_data[MESH_TYPE_TILE_BLUE].colors[0] = tile_color_blue;
+	state->memory.mesh_data[MESH_TYPE_TILE_BLUE].colors[1] = tile_color_blue;
+	state->memory.mesh_data[MESH_TYPE_TILE_BLUE].colors[2] = tile_color_blue;
+	state->memory.mesh_data[MESH_TYPE_TILE_BLUE].colors[3] = tile_color_blue;
+	state->memory.mesh_data[MESH_TYPE_TILE_BLUE].colors[4] = tile_color_blue;
 	state->memory.mesh_data[MESH_TYPE_TILE_BLUE].colors[5] = black4;
 
 	state->memory.vertex_count += state->memory.mesh_data[MESH_TYPE_TILE_BLUE].vertex_count;
@@ -824,11 +927,11 @@ static b32 game_initialize_meshes(game_state *state)
 	state->memory.mesh_data[MESH_TYPE_TILE_RED].colors = state->memory.vertex_color_data + state->memory.vertex_count;
 	state->memory.mesh_data[MESH_TYPE_TILE_RED].vertex_count = 6;
 
-	state->memory.mesh_data[MESH_TYPE_TILE_RED].colors[0] = red4;
-	state->memory.mesh_data[MESH_TYPE_TILE_RED].colors[1] = red4;
-	state->memory.mesh_data[MESH_TYPE_TILE_RED].colors[2] = red4;
-	state->memory.mesh_data[MESH_TYPE_TILE_RED].colors[3] = red4;
-	state->memory.mesh_data[MESH_TYPE_TILE_RED].colors[4] = red4;
+	state->memory.mesh_data[MESH_TYPE_TILE_RED].colors[0] = tile_color_red;
+	state->memory.mesh_data[MESH_TYPE_TILE_RED].colors[1] = tile_color_red;
+	state->memory.mesh_data[MESH_TYPE_TILE_RED].colors[2] = tile_color_red;
+	state->memory.mesh_data[MESH_TYPE_TILE_RED].colors[3] = tile_color_red;
+	state->memory.mesh_data[MESH_TYPE_TILE_RED].colors[4] = tile_color_red;
 	state->memory.mesh_data[MESH_TYPE_TILE_RED].colors[5] = black4;
 
 	state->memory.vertex_count += state->memory.mesh_data[MESH_TYPE_TILE_RED].vertex_count;
@@ -838,11 +941,11 @@ static b32 game_initialize_meshes(game_state *state)
 	state->memory.mesh_data[MESH_TYPE_TILE_GREEN].colors = state->memory.vertex_color_data + state->memory.vertex_count;
 	state->memory.mesh_data[MESH_TYPE_TILE_GREEN].vertex_count = 6;
 
-	state->memory.mesh_data[MESH_TYPE_TILE_GREEN].colors[0] = green4;
-	state->memory.mesh_data[MESH_TYPE_TILE_GREEN].colors[1] = green4;
-	state->memory.mesh_data[MESH_TYPE_TILE_GREEN].colors[2] = green4;
-	state->memory.mesh_data[MESH_TYPE_TILE_GREEN].colors[3] = green4;
-	state->memory.mesh_data[MESH_TYPE_TILE_GREEN].colors[4] = green4;
+	state->memory.mesh_data[MESH_TYPE_TILE_GREEN].colors[0] = black4;
+	state->memory.mesh_data[MESH_TYPE_TILE_GREEN].colors[1] = tile_color_green;
+	state->memory.mesh_data[MESH_TYPE_TILE_GREEN].colors[2] = tile_color_green;
+	state->memory.mesh_data[MESH_TYPE_TILE_GREEN].colors[3] = tile_color_green;
+	state->memory.mesh_data[MESH_TYPE_TILE_GREEN].colors[4] = tile_color_green;
 	state->memory.mesh_data[MESH_TYPE_TILE_GREEN].colors[5] = black4;
 
 	state->memory.vertex_count += state->memory.mesh_data[MESH_TYPE_TILE_GREEN].vertex_count;
@@ -859,6 +962,7 @@ static b32 game_initialize_meshes(game_state *state)
 	state->memory.mesh_data[MESH_TYPE_UNIT_RED].colors = state->memory.vertex_color_data + state->memory.vertex_count;
 
 	state->memory.mesh_data[MESH_TYPE_UNIT_RED].vertex_count = 6;
+
 	state->memory.mesh_data[MESH_TYPE_UNIT_RED].positions[0].x = state->memory.tile_stride/3;
 	state->memory.mesh_data[MESH_TYPE_UNIT_RED].positions[0].y = state->memory.tile_stride/3;
 	state->memory.mesh_data[MESH_TYPE_UNIT_RED].positions[1].x =-state->memory.tile_stride/3;
@@ -873,11 +977,11 @@ static b32 game_initialize_meshes(game_state *state)
 	state->memory.mesh_data[MESH_TYPE_UNIT_RED].positions[5].y =-state->memory.tile_stride/3;
 
 	state->memory.mesh_data[MESH_TYPE_UNIT_RED].colors[0] = white4;
-	state->memory.mesh_data[MESH_TYPE_UNIT_RED].colors[1] = red4;
-	state->memory.mesh_data[MESH_TYPE_UNIT_RED].colors[2] = red4;
-	state->memory.mesh_data[MESH_TYPE_UNIT_RED].colors[3] = red4;
-	state->memory.mesh_data[MESH_TYPE_UNIT_RED].colors[4] = red4;
-	state->memory.mesh_data[MESH_TYPE_UNIT_RED].colors[5] = red4;
+	state->memory.mesh_data[MESH_TYPE_UNIT_RED].colors[1] = unit_color_red;
+	state->memory.mesh_data[MESH_TYPE_UNIT_RED].colors[2] = unit_color_red;
+	state->memory.mesh_data[MESH_TYPE_UNIT_RED].colors[3] = unit_color_red;
+	state->memory.mesh_data[MESH_TYPE_UNIT_RED].colors[4] = unit_color_red;
+	state->memory.mesh_data[MESH_TYPE_UNIT_RED].colors[5] = unit_color_red;
 
 	state->memory.vertex_count += state->memory.mesh_data[MESH_TYPE_UNIT_RED].vertex_count;
 
@@ -888,11 +992,11 @@ static b32 game_initialize_meshes(game_state *state)
 	state->memory.mesh_data[MESH_TYPE_UNIT_BLUE].vertex_count = 6;
 
 	state->memory.mesh_data[MESH_TYPE_UNIT_BLUE].colors[0] = white4;
-	state->memory.mesh_data[MESH_TYPE_UNIT_BLUE].colors[1] = blue4;
-	state->memory.mesh_data[MESH_TYPE_UNIT_BLUE].colors[2] = blue4;
-	state->memory.mesh_data[MESH_TYPE_UNIT_BLUE].colors[3] = blue4;
-	state->memory.mesh_data[MESH_TYPE_UNIT_BLUE].colors[4] = blue4;
-	state->memory.mesh_data[MESH_TYPE_UNIT_BLUE].colors[5] = blue4;
+	state->memory.mesh_data[MESH_TYPE_UNIT_BLUE].colors[1] = unit_color_blue;
+	state->memory.mesh_data[MESH_TYPE_UNIT_BLUE].colors[2] = unit_color_blue;
+	state->memory.mesh_data[MESH_TYPE_UNIT_BLUE].colors[3] = unit_color_blue;
+	state->memory.mesh_data[MESH_TYPE_UNIT_BLUE].colors[4] = unit_color_blue;
+	state->memory.mesh_data[MESH_TYPE_UNIT_BLUE].colors[5] = unit_color_blue;
 
 	state->memory.vertex_count += state->memory.mesh_data[MESH_TYPE_UNIT_BLUE].vertex_count;
 
@@ -903,13 +1007,21 @@ static b32 game_initialize_meshes(game_state *state)
 	state->memory.mesh_data[MESH_TYPE_UNIT_GREEN].vertex_count = 6;
 
 	state->memory.mesh_data[MESH_TYPE_UNIT_GREEN].colors[0] = white4;
-	state->memory.mesh_data[MESH_TYPE_UNIT_GREEN].colors[1] = green4;
-	state->memory.mesh_data[MESH_TYPE_UNIT_GREEN].colors[2] = green4;
-	state->memory.mesh_data[MESH_TYPE_UNIT_GREEN].colors[3] = green4;
-	state->memory.mesh_data[MESH_TYPE_UNIT_GREEN].colors[4] = green4;
-	state->memory.mesh_data[MESH_TYPE_UNIT_GREEN].colors[5] = green4;
+	state->memory.mesh_data[MESH_TYPE_UNIT_GREEN].colors[1] = unit_color_green;
+	state->memory.mesh_data[MESH_TYPE_UNIT_GREEN].colors[2] = unit_color_green;
+	state->memory.mesh_data[MESH_TYPE_UNIT_GREEN].colors[3] = unit_color_green;
+	state->memory.mesh_data[MESH_TYPE_UNIT_GREEN].colors[4] = unit_color_green;
+	state->memory.mesh_data[MESH_TYPE_UNIT_GREEN].colors[5] = unit_color_green;
 
 	state->memory.vertex_count += state->memory.mesh_data[MESH_TYPE_UNIT_GREEN].vertex_count;
+
+	state->memory.mesh_data[MESH_TYPE_UNIT_TRANSITIONING].positions = 
+		state->memory.mesh_data[MESH_TYPE_UNIT_RED].positions;
+	state->memory.mesh_data[MESH_TYPE_UNIT_TRANSITIONING].colors = state->memory.vertex_color_data + state->memory.vertex_count;
+	state->memory.mesh_data[MESH_TYPE_UNIT_TRANSITIONING].vertex_count = 6;
+	/* NOTE(josh): don't need to initialize color data, since anything that draws this mesh will manually set the color data */
+
+	state->memory.vertex_count += state->memory.mesh_data[MESH_TYPE_UNIT_TRANSITIONING].vertex_count;
 
 	LOG_TRACE("game initialize meshes finished (vertex count: %u)", state->memory.vertex_count);
 	_assert(state->memory.vertex_count <= MAX_VERTICES);
@@ -1089,7 +1201,7 @@ static void game_step_through_move(game_state *state)
 			case MOVE_STEP_CHANGE_TARGET_UNIT:
 			{
 				u32 index = 0;
-				i32 tile_id = 0;
+				b32 change = false;
 				for( ; index < move->target_count; index++)
 				{
 					tile *t = &(state->memory.tiles[move->target_tile_ids[index]]);
@@ -1098,7 +1210,30 @@ static void game_step_through_move(game_state *state)
 
 					if(t->unit_type != behavior.unit_type_shift_targets && t->unit_type != UNIT_TYPE_NONE)
 					{
-						t->unit_type = behavior.unit_type_shift_targets;
+						t->transition_unit_type_from = t->unit_type;
+						t->unit_type = UNIT_TYPE_TRANSITIONING;
+						t->transition_unit_type_to = behavior.unit_type_shift_targets;
+						change = true;
+					}
+				}
+				if(change)
+				{
+					move->current_step = MOVE_STEP_ANIMATE_TARGET_UNIT_CHANGE;
+				}
+				else
+				{
+					state->state = STATE_WAITING_FOR_MOVE;
+				}
+			} break;
+			case MOVE_STEP_ANIMATE_TARGET_UNIT_CHANGE:
+			{
+				u32 index = 0;
+				for( ; index < move->target_count; index++)
+				{
+					tile *t = &(state->memory.tiles[move->target_tile_ids[index]]);
+					if(t->unit_type == UNIT_TYPE_TRANSITIONING)
+					{
+						t->unit_type = t->transition_unit_type_to;
 					}
 				}
 				state->state = STATE_WAITING_FOR_MOVE;
@@ -1112,7 +1247,7 @@ static void game_step_through_move(game_state *state)
 	}
 
 	u32 red_count = game_check_red_count(state);
-	if(!red_count)
+	if(!red_count && state->state == STATE_WAITING_FOR_MOVE)
 	{
 		state->state = STATE_WON;
 	}

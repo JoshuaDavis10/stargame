@@ -27,16 +27,16 @@ static struct_rgba_color white = {255, 255, 255, 0};
 static struct_rgba_color black = {0, 0, 0, 0};
 static struct_rgba_color gray = {40, 40, 40, 40};
 
-static vector_4 blue4 = {0.0f, 0.0f, 1.0f, 0.0f};
-static vector_4 cyan4 = {0.0f, 1.0f, 1.0f, 0.0f};
-static vector_4 green4 = {0.0f, 1.0f, 0.0f, 0.0f};
-static vector_4 yellow4 = {1.0f, 1.0f, 0.0f, 0.0f};
-static vector_4 orange4 = {1.0f, 0.5f, 0.0f, 0.0f};
-static vector_4 red4 = {1.0f, 0.0f, 0.0f, 0.0f};
-static vector_4 magenta4 = {1.0f, 0.0f, 1.0f, 0.0f};
+static vector_4 blue4 = {0.0f, 0.0f, 1.0f, 1.0f};
+static vector_4 cyan4 = {0.0f, 1.0f, 1.0f, 1.0f};
+static vector_4 green4 = {0.0f, 1.0f, 0.0f, 1.0f};
+static vector_4 yellow4 = {1.0f, 1.0f, 0.0f, 1.0f};
+static vector_4 orange4 = {1.0f, 0.5f, 0.0f, 1.0f};
+static vector_4 red4 = {1.0f, 0.0f, 0.0f, 1.0f};
+static vector_4 magenta4 = {1.0f, 0.0f, 1.0f, 1.0f};
 
-static vector_4 white4 = {1.0f, 1.0f, 1.0f, 0.0f};
-static vector_4 black4 = {0.0f, 0.0f, 0.0f, 0.0f};
+static vector_4 white4 = {1.0f, 1.0f, 1.0f, 1.0f};
+static vector_4 black4 = {0.0f, 0.0f, 0.0f, 1.0f};
 
 void draw_pixel_in_buffer_rgba(
 		u8 *pixel_buffer,
@@ -61,12 +61,25 @@ void draw_pixel_in_buffer_vec4(
 		u32 pixel,
 		vector_4 color)
 {
+
 	if(pixel < buffer_width * buffer_height)
 	{
-		pixel_buffer[4*pixel] =   (u8)(255.0f * color.z);
-		pixel_buffer[4*pixel+1] = (u8)(255.0f * color.y);
-		pixel_buffer[4*pixel+2] = (u8)(255.0f * color.x);
-		pixel_buffer[4*pixel+3] = (u8)(255.0f * color.w);
+		f32 red;
+		f32 green;
+		f32 blue;
+
+		f32 back_red = (f32)pixel_buffer[4*pixel+2]/255.0f;
+		f32 back_green = (f32)pixel_buffer[4*pixel+1]/255.0f;
+		f32 back_blue = (f32)pixel_buffer[4*pixel]/255.0f;
+
+		red   = back_red   + ((color.x - back_red)   * color.w);
+		green = back_green + ((color.y - back_green) * color.w);
+		blue  = back_blue  + ((color.z - back_blue)  * color.w);
+
+		pixel_buffer[4*pixel] =   (u8)(255.0f * blue);
+		pixel_buffer[4*pixel+1] = (u8)(255.0f * green);
+		pixel_buffer[4*pixel+2] = (u8)(255.0f * red);
+		pixel_buffer[4*pixel+3] = 0;
 	}
 }
 
@@ -131,7 +144,7 @@ void draw_triangles_in_buffer(
 		if(v2.x > max_x) { max_x = v2.x; }
 		min_x = v0.x;
 		if(v1.x < min_x) { min_x = v1.x; }
-		if(v2.x < max_x) { min_x = v2.x; }
+		if(v2.x < min_x) { min_x = v2.x; }
 		max_y = v0.y;
 		if(v1.y > max_y) { max_y = v1.y; }
 		if(v2.y > max_y) { max_y = v2.y; }
@@ -231,6 +244,20 @@ void draw_triangles_in_buffer(
 						pixel,
 						color);
 				}
+				/* NOTE(josh): turn this on if you want to see the pixels that didn't get colored + bc of alpha it'll be darker
+				 * if passed over multiple times etc... nice debug stuff basically
+				else
+				{
+					vector_4 color = {1.0f, 0.5f, 0.0f, 0.3f};
+					u32 pixel = y * buffer_width + x;
+					draw_pixel_in_buffer_vec4(
+						pixel_buffer, 
+						buffer_width, 
+						buffer_height,
+						pixel,
+						color);
+				}
+				 */
 				det01p += A01;
 				det12p += A12;
 				det20p += A20;
