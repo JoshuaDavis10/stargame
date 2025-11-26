@@ -1,7 +1,11 @@
-/*logging*/
+#include <errno.h>
+
+/* logging */
 #include <stdio.h>
 #include <stdarg.h>
 
+/* TODO: some buffer here instead of stack allocating for every log */
+/* TODO: log file */
 #define MAX_LOGGER_MESSAGE_SIZE 16384
 
 #define LOGGER_ERROR_ENABLED 1
@@ -173,4 +177,100 @@ static u64 read_cpu_frequency()
 	cpu_frequency = MICROSECS_PER_SEC * cpu_elapsed / os_elapsed;
 
 	return(cpu_frequency);
+}
+
+/* file I/O */
+#include <fcntl.h> /* for open(2) */
+#include <unistd.h> /* for read(2) */
+#include <sys/stat.h>
+
+static u64 get_file_size(const char *filename)
+{
+	struct stat st;
+	if(stat(filename, &st) == -1)
+	{
+		LOG_ERROR("get_file_size: failed to stat '%s' (errno: %d)", filename, errno);
+		return(0);
+	}
+
+	return(st.st_size);	
+}
+
+static b32 read_file_into_buffer(const char *filename, void *buffer, u64 buffer_size)
+{
+	i32 fd = open(filename, O_RDONLY);
+	if(fd == -1)
+	{
+		LOG_ERROR("read_file_into_buffer: failed to open '%s' (errno: %d)", filename, errno);
+		return(false);
+	}
+
+	i64 bytes_read = read(fd, buffer, buffer_size);	
+	if(bytes_read == -1)
+	{
+		LOG_ERROR("read_file_into_buffer: failed to read from '%s' (errno: %d)", filename, errno);
+		return(false);
+	}
+
+	_assert((u64)bytes_read <= buffer_size);	
+
+	if(close(fd) == -1)
+	{
+		LOG_ERROR("read_file_into_buffer: failed to close '%s' (errno: %d)", filename, errno);
+		return(false);
+	}
+
+	return(true);
+}
+
+static b32 write_buffer_into_file_truncate(const char *filename, void *buffer, u64 buffer_size)
+{
+	/* NOTE(josh): this will clear the file's original contents */
+	i32 fd = open(filename, O_WRONLY | O_TRUNC);
+	if(fd == -1)
+	{
+		LOG_ERROR("write_buffer_into_file_truncate: failed to open '%s' (errno: %d)", filename, errno);
+		return(false);
+	}
+
+	i64 bytes_written = write(fd, buffer, buffer_size);
+	if(bytes_written == -1)
+	{
+		LOG_ERROR("write_buffer_into_file_truncate: failed to write to '%s' (errno: %d)", filename, errno);
+		return(false);
+	}
+
+	if(close(fd) == -1)
+	{
+		LOG_ERROR("write_buffer_into_file_truncate: failed to close '%s' (errno: %d)", filename, errno);
+		return(false);
+	}
+
+	return(true);
+}
+
+static b32 write_buffer_into_file_append(const char *filename, void *buffer, u64 buffer_size)
+{
+	/* NOTE(josh): this will clear the file's original contents */
+	i32 fd = open(filename, O_WRONLY | O_APPEND);
+	if(fd == -1)
+	{
+		LOG_ERROR("write_buffer_into_file_append: failed to open '%s' (errno: %d)", filename, errno);
+		return(false);
+	}
+
+	i64 bytes_written = write(fd, buffer, buffer_size);
+	if(bytes_written == -1)
+	{
+		LOG_ERROR("write_buffer_into_file_append: failed to write to '%s' (errno: %d)", filename, errno);
+		return(false);
+	}
+
+	if(close(fd) == -1)
+	{
+		LOG_ERROR("write_buffer_into_file_append: failed to close '%s' (errno: %d)", filename, errno);
+		return(false);
+	}
+
+	return(true);
 }

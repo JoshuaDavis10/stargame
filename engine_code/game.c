@@ -267,7 +267,8 @@ void game_update_and_render(
 		u8 *pixel_buffer, 
 		u16 pixel_buffer_width,
 		u16 pixel_buffer_height,
-		x_input_state *input) 
+		x_input_state *input,
+		char *level_filename) 
 {
 	start_profile();
 

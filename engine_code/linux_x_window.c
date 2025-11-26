@@ -280,7 +280,24 @@ int main(int argc, char **argv)
 
 	u64 pagesize = sysconf(_SC_PAGESIZE);
 	LOG_DEBUG("pagesize: %u", pagesize);
-	x_global_game_memory_size = 4 * pagesize;
+	LOG_DEBUG("lib: %s", argv[1]);
+	if(strcmp("./build/libgame.so", argv[1]) == 0)
+	{
+		x_global_game_memory_size = 16 * pagesize;
+	}
+	else if(strcmp("./build/libtilegame.so", argv[1]) == 0)
+	{
+		x_global_game_memory_size = 4 * pagesize;
+	}
+	else if(strcmp("./build/libeditor.so", argv[1]) == 0)
+	{
+		x_global_game_memory_size = pagesize;
+	}
+	else
+	{
+		_assert(0);
+	}
+
 
 	/* NOTE: for some reason MAP_ANONYMOUS was breaking without
 	 * MAP_PRIVATE
@@ -444,7 +461,7 @@ int main(int argc, char **argv)
 		x_generate_game_input();
 
 		/* load game code */
-		void *game_shared_object_handle = dlopen("./build/libtilegame.so", RTLD_NOW);
+		void *game_shared_object_handle = dlopen(argv[1], RTLD_NOW);
 		if(!game_shared_object_handle)
 		{
 			LOG_ERROR("dlopen: %s", dlerror());
@@ -466,7 +483,8 @@ int main(int argc, char **argv)
 				x_pixmap_data, 
 				x_global_window_width,
 				x_global_window_height,
-	    		&x_global_game_input_state);
+	    		&x_global_game_input_state,
+				argv[2]);
 
 		dlclose(game_shared_object_handle);
 
