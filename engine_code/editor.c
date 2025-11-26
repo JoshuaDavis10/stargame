@@ -41,7 +41,7 @@ typedef struct {
 typedef struct {
 	i32 width;
 	i32 height;
-	tiles *tiles;
+	tile *tiles;
 } tilemap_data;
 
 typedef struct {

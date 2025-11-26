@@ -29,7 +29,7 @@ typedef double f64;
 #include "linux_util.c"
 #include "xcb_input.c" /* NOTE: my xcb input utils file */
 
-#define FRAME_RATE (30.0)
+#define FRAME_RATE (20.0)
 #define FRAME_TIME (u64)((1.0/FRAME_RATE) * (f64)MICROSECS_PER_SEC) /* microseconds */
 
 /* TODO: platform state struct */
