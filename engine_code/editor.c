@@ -6,6 +6,10 @@
 
 #include "profiler.c"
 
+/* TODO: this needs to be some constant * the width of tiles or smn so that it scales with map size 
+ * (inversely ofc) */
+#define TILE_SIZE 50
+
 typedef struct {
 	vector_2 position;
 	/* NOTE: -x and +x maximums + -y and +y maximums for camera coords 
@@ -135,7 +139,6 @@ void game_update_and_render(
 					game_memory,
 					game_memory_size);
 		_assert(state->tilemap_memory);
-		LOG_DEBUG("tilemap mem: %p", state->tilemap_memory);
 
 		if(!read_file_into_buffer(
 				level_filename, 
@@ -147,7 +150,8 @@ void game_update_and_render(
 
 		if(init_success)
 		{
-			LOG_INFO("initialized editor state."); /* NOTE(josh): I mean do we just call this a game state still? */
+			/* NOTE(josh): I mean do we just call this a game state still? */
+			LOG_INFO("initialized editor state.");
 		}
 		else
 		{
@@ -161,6 +165,290 @@ void game_update_and_render(
 	state->time_elapsed = read_os_timer() - state->last_time;	
 	state->timer += state->time_elapsed;
 	state->last_time = read_os_timer();
+
+	if(input->left_control == INPUT_BUTTON_STATE_DOWN)
+	{
+		if(input->letters[1] == INPUT_BUTTON_STATE_PRESSED)
+		{
+			i32 tile_index = -1;	
+			i32 x = input->mouse_x;
+			i32 y = input->mouse_y;
+
+			x = (x - TILE_SIZE) / TILE_SIZE;
+			y = (y - TILE_SIZE) / TILE_SIZE;
+
+			void *tilemap_width_ptr = 0;
+			void *tilemap_height_ptr = 0;
+
+			_assert(tilemap_access(state, &tilemap_width_ptr,  0, TILEMAP_ACCESS_WIDTH));
+			_assert(tilemap_access(state, &tilemap_height_ptr, 0, TILEMAP_ACCESS_HEIGHT));
+
+			_assert(tilemap_width_ptr);
+			_assert(tilemap_height_ptr);
+
+			i32 tilemap_width  = *((i32*)tilemap_width_ptr);
+			i32 tilemap_height = *((i32*)tilemap_height_ptr);
+
+			if(y >= 0 && x >= 0 && x < tilemap_width && y < tilemap_height)
+			{
+				tile_index = y * tilemap_width + x;
+			}
+
+			if(tile_index >= 0)
+			{
+				LOG_DEBUG("setting tile %d to blue unit", tile_index);
+				void *tile_ptr = 0;
+				tile *t = 0;
+				_assert(tilemap_access(state, &tile_ptr, tile_index, TILEMAP_ACCESS_TILE_PTR));
+				t = (tile *)tile_ptr;
+				t->unit_type = UNIT_TYPE_BLUE;
+			}
+			LOG_DEBUG("(%d, %d) tile: %d (%d, %d)", input->mouse_x, input->mouse_y, tile_index, x, y);
+		}
+		if(input->letters[6] == INPUT_BUTTON_STATE_PRESSED)
+		{
+			i32 tile_index = -1;	
+			i32 x = input->mouse_x;
+			i32 y = input->mouse_y;
+
+			x = (x - TILE_SIZE) / TILE_SIZE;
+			y = (y - TILE_SIZE) / TILE_SIZE;
+
+			void *tilemap_width_ptr = 0;
+			void *tilemap_height_ptr = 0;
+
+			_assert(tilemap_access(state, &tilemap_width_ptr,  0, TILEMAP_ACCESS_WIDTH));
+			_assert(tilemap_access(state, &tilemap_height_ptr, 0, TILEMAP_ACCESS_HEIGHT));
+
+			_assert(tilemap_width_ptr);
+			_assert(tilemap_height_ptr);
+
+			i32 tilemap_width  = *((i32*)tilemap_width_ptr);
+			i32 tilemap_height = *((i32*)tilemap_height_ptr);
+
+			if(y >= 0 && x >= 0 && x < tilemap_width && y < tilemap_height)
+			{
+				tile_index = y * tilemap_width + x;
+			}
+
+			if(tile_index >= 0)
+			{
+				LOG_DEBUG("setting tile %d to green unit", tile_index);
+				void *tile_ptr = 0;
+				tile *t = 0;
+				_assert(tilemap_access(state, &tile_ptr, tile_index, TILEMAP_ACCESS_TILE_PTR));
+				t = (tile *)tile_ptr;
+				t->unit_type = UNIT_TYPE_GREEN;
+			}
+			LOG_DEBUG("(%d, %d) tile: %d (%d, %d)", input->mouse_x, input->mouse_y, tile_index, x, y);
+		}
+		if(input->letters[17] == INPUT_BUTTON_STATE_PRESSED)
+		{
+			i32 tile_index = -1;	
+			i32 x = input->mouse_x;
+			i32 y = input->mouse_y;
+
+			x = (x - TILE_SIZE) / TILE_SIZE;
+			y = (y - TILE_SIZE) / TILE_SIZE;
+
+			void *tilemap_width_ptr = 0;
+			void *tilemap_height_ptr = 0;
+
+			_assert(tilemap_access(state, &tilemap_width_ptr,  0, TILEMAP_ACCESS_WIDTH));
+			_assert(tilemap_access(state, &tilemap_height_ptr, 0, TILEMAP_ACCESS_HEIGHT));
+
+			_assert(tilemap_width_ptr);
+			_assert(tilemap_height_ptr);
+
+			i32 tilemap_width  = *((i32*)tilemap_width_ptr);
+			i32 tilemap_height = *((i32*)tilemap_height_ptr);
+
+			if(y >= 0 && x >= 0 && x < tilemap_width && y < tilemap_height)
+			{
+				tile_index = y * tilemap_width + x;
+			}
+
+			if(tile_index >= 0)
+			{
+				LOG_DEBUG("setting tile %d to red unit", tile_index);
+				void *tile_ptr = 0;
+				tile *t = 0;
+				_assert(tilemap_access(state, &tile_ptr, tile_index, TILEMAP_ACCESS_TILE_PTR));
+				t = (tile *)tile_ptr;
+				t->unit_type = UNIT_TYPE_RED;
+			}
+			LOG_DEBUG("(%d, %d) tile: %d (%d, %d)", input->mouse_x, input->mouse_y, tile_index, x, y);
+		}
+	}
+	else
+	{
+		if(input->letters[1] == INPUT_BUTTON_STATE_PRESSED)
+		{
+			i32 tile_index = -1;	
+			i32 x = input->mouse_x;
+			i32 y = input->mouse_y;
+
+			x = (x - TILE_SIZE) / TILE_SIZE;
+			y = (y - TILE_SIZE) / TILE_SIZE;
+
+			void *tilemap_width_ptr = 0;
+			void *tilemap_height_ptr = 0;
+
+			_assert(tilemap_access(state, &tilemap_width_ptr,  0, TILEMAP_ACCESS_WIDTH));
+			_assert(tilemap_access(state, &tilemap_height_ptr, 0, TILEMAP_ACCESS_HEIGHT));
+
+			_assert(tilemap_width_ptr);
+			_assert(tilemap_height_ptr);
+
+			i32 tilemap_width  = *((i32*)tilemap_width_ptr);
+			i32 tilemap_height = *((i32*)tilemap_height_ptr);
+
+			if(y >= 0 && x >= 0 && x < tilemap_width && y < tilemap_height)
+			{
+				tile_index = y * tilemap_width + x;
+			}
+
+			if(tile_index >= 0)
+			{
+				LOG_DEBUG("setting tile %d to blue", tile_index);
+				void *tile_ptr = 0;
+				tile *t = 0;
+				_assert(tilemap_access(state, &tile_ptr, tile_index, TILEMAP_ACCESS_TILE_PTR));
+				t = (tile *)tile_ptr;
+				t->tile_type = TILE_TYPE_BLUE;
+			}
+			LOG_DEBUG("(%d, %d) tile: %d (%d, %d)", input->mouse_x, input->mouse_y, tile_index, x, y);
+		}
+		if(input->letters[6] == INPUT_BUTTON_STATE_PRESSED)
+		{
+			i32 tile_index = -1;	
+			i32 x = input->mouse_x;
+			i32 y = input->mouse_y;
+
+			x = (x - TILE_SIZE) / TILE_SIZE;
+			y = (y - TILE_SIZE) / TILE_SIZE;
+
+			void *tilemap_width_ptr = 0;
+			void *tilemap_height_ptr = 0;
+
+			_assert(tilemap_access(state, &tilemap_width_ptr,  0, TILEMAP_ACCESS_WIDTH));
+			_assert(tilemap_access(state, &tilemap_height_ptr, 0, TILEMAP_ACCESS_HEIGHT));
+
+			_assert(tilemap_width_ptr);
+			_assert(tilemap_height_ptr);
+
+			i32 tilemap_width  = *((i32*)tilemap_width_ptr);
+			i32 tilemap_height = *((i32*)tilemap_height_ptr);
+
+			if(y >= 0 && x >= 0 && x < tilemap_width && y < tilemap_height)
+			{
+				tile_index = y * tilemap_width + x;
+			}
+
+			if(tile_index >= 0)
+			{
+				LOG_DEBUG("setting tile %d to green", tile_index);
+				void *tile_ptr = 0;
+				tile *t = 0;
+				_assert(tilemap_access(state, &tile_ptr, tile_index, TILEMAP_ACCESS_TILE_PTR));
+				t = (tile *)tile_ptr;
+				t->tile_type = TILE_TYPE_GREEN;
+			}
+			LOG_DEBUG("(%d, %d) tile: %d (%d, %d)", input->mouse_x, input->mouse_y, tile_index, x, y);
+		}
+		if(input->letters[17] == INPUT_BUTTON_STATE_PRESSED)
+		{
+			i32 tile_index = -1;	
+			i32 x = input->mouse_x;
+			i32 y = input->mouse_y;
+
+			x = (x - TILE_SIZE) / TILE_SIZE;
+			y = (y - TILE_SIZE) / TILE_SIZE;
+
+			void *tilemap_width_ptr = 0;
+			void *tilemap_height_ptr = 0;
+
+			_assert(tilemap_access(state, &tilemap_width_ptr,  0, TILEMAP_ACCESS_WIDTH));
+			_assert(tilemap_access(state, &tilemap_height_ptr, 0, TILEMAP_ACCESS_HEIGHT));
+
+			_assert(tilemap_width_ptr);
+			_assert(tilemap_height_ptr);
+
+			i32 tilemap_width  = *((i32*)tilemap_width_ptr);
+			i32 tilemap_height = *((i32*)tilemap_height_ptr);
+
+			if(y >= 0 && x >= 0 && x < tilemap_width && y < tilemap_height)
+			{
+				tile_index = y * tilemap_width + x;
+			}
+
+			if(tile_index >= 0)
+			{
+				LOG_DEBUG("setting tile %d to red", tile_index);
+				void *tile_ptr = 0;
+				tile *t = 0;
+				_assert(tilemap_access(state, &tile_ptr, tile_index, TILEMAP_ACCESS_TILE_PTR));
+				t = (tile *)tile_ptr;
+				t->tile_type = TILE_TYPE_RED;
+			}
+			LOG_DEBUG("(%d, %d) tile: %d (%d, %d)", input->mouse_x, input->mouse_y, tile_index, x, y);
+		}
+		if(input->letters[23] == INPUT_BUTTON_STATE_PRESSED)
+		{
+			i32 tile_index = -1;	
+			i32 x = input->mouse_x;
+			i32 y = input->mouse_y;
+
+			x = (x - TILE_SIZE) / TILE_SIZE;
+			y = (y - TILE_SIZE) / TILE_SIZE;
+
+			void *tilemap_width_ptr = 0;
+			void *tilemap_height_ptr = 0;
+
+			_assert(tilemap_access(state, &tilemap_width_ptr,  0, TILEMAP_ACCESS_WIDTH));
+			_assert(tilemap_access(state, &tilemap_height_ptr, 0, TILEMAP_ACCESS_HEIGHT));
+
+			_assert(tilemap_width_ptr);
+			_assert(tilemap_height_ptr);
+
+			i32 tilemap_width  = *((i32*)tilemap_width_ptr);
+			i32 tilemap_height = *((i32*)tilemap_height_ptr);
+
+			if(y >= 0 && x >= 0 && x < tilemap_width && y < tilemap_height)
+			{
+				tile_index = y * tilemap_width + x;
+			}
+
+			if(tile_index >= 0)
+			{
+				LOG_DEBUG("setting tile %d to none", tile_index);
+				void *tile_ptr = 0;
+				tile *t = 0;
+				_assert(tilemap_access(state, &tile_ptr, tile_index, TILEMAP_ACCESS_TILE_PTR));
+				t = (tile *)tile_ptr;
+				t->unit_type = UNIT_TYPE_NONE;
+			}
+			LOG_DEBUG("(%d, %d) tile: %d (%d, %d)", input->mouse_x, input->mouse_y, tile_index, x, y);
+		}
+	}
+
+	if(input->spacebar == INPUT_BUTTON_STATE_PRESSED)
+	{
+		void *tilemap_width_ptr = 0;
+		void *tilemap_height_ptr = 0;
+
+		_assert(tilemap_access(state, &tilemap_width_ptr,  0, TILEMAP_ACCESS_WIDTH));
+		_assert(tilemap_access(state, &tilemap_height_ptr, 0, TILEMAP_ACCESS_HEIGHT));
+
+		_assert(tilemap_width_ptr);
+		_assert(tilemap_height_ptr);
+
+		i32 tilemap_width  = *((i32*)tilemap_width_ptr);
+		i32 tilemap_height = *((i32*)tilemap_height_ptr);
+
+		write_buffer_into_file_truncate(level_filename, state->tilemap_memory, tilemap_width * tilemap_height * sizeof(tile) + 5 * sizeof(i32)); 
+		LOG_INFO("saved tilemap to '%s'", level_filename);
+	}
 
 	/* TODO: edit tilemap based on input */
 	/* TODO: some button to save to file, or maybe just a key combo */
@@ -217,13 +505,10 @@ static b32 tilemap_access(
 		} break;
 		case TILEMAP_ACCESS_WIDTH:
 		{
-			LOG_DEBUG("result: %p", result);
-			LOG_TRACE("tilemap_access: no crash");
 			*result = (void*)((i32*)state->tilemap_memory + 3);
 		} break;
 		case TILEMAP_ACCESS_HEIGHT:
 		{
-			LOG_TRACE("tilemap_access: no crash");
 			*result = (void*)((i32*)state->tilemap_memory + 4);
 		} break;
 		case TILEMAP_ACCESS_TILE_PTR:
@@ -265,9 +550,6 @@ static void editor_draw_tilemap(game_state *state)
 	map_width = *((i32*)map_width_ptr);
 	map_height = *((i32*)map_height_ptr);
 
-	LOG_TRACE("width: %d, height: %d", map_width, map_height);
-
-	
 	i32 x = 0; 
 	i32 y = 0; 
 	tile *t = 0;
@@ -276,7 +558,6 @@ static void editor_draw_tilemap(game_state *state)
 	{
 		for(y = 0; y < map_height; y++)
 		{
-			LOG_DEBUG("index: %d", y * map_width + x);
 			_assert(
 				tilemap_access(
 					state, 
@@ -287,7 +568,6 @@ static void editor_draw_tilemap(game_state *state)
 			t = (tile*)tile_ptr;
 
 			struct_rgba_color color;
-			LOG_DEBUG("tile type: %d", t->tile_type);
 			switch(t->tile_type)
 			{
 				case TILE_TYPE_BLUE:
@@ -316,42 +596,31 @@ static void editor_draw_tilemap(game_state *state)
 					_assert(0);
 				} break;
 			}
-			LOG_DEBUG("x: %d, y: %d", x, y);
 			draw_nofill_rectangle_in_buffer(
 				state->pixel_buffer,
 				state->pixel_buffer_width,
 				state->pixel_buffer_height,
-				100 * x + 100, 100 * y + 100,
-				100, 100, color);
+				TILE_SIZE * x + TILE_SIZE, TILE_SIZE * y + TILE_SIZE,
+				TILE_SIZE, TILE_SIZE, color);
+
+			color.r = 0;
+			color.g = 0;
+			color.b = 0;
+			color.a = 0;
 
 			switch(t->unit_type)
 			{
 				case UNIT_TYPE_BLUE:
 				{
-					draw_nofill_rectangle_in_buffer(
-						state->pixel_buffer,
-						state->pixel_buffer_width,
-						state->pixel_buffer_height,
-						100 * x + 120, 100 * y + 120,
-						60, 60, blue);
+					color.b = 255;
 				} break;
 				case UNIT_TYPE_GREEN:
 				{
-					draw_nofill_rectangle_in_buffer(
-						state->pixel_buffer,
-						state->pixel_buffer_width,
-						state->pixel_buffer_height,
-						100 * x + 120, 100 * y + 120,
-						60, 60, green);
+					color.g = 255;
 				} break;
 				case UNIT_TYPE_RED:
 				{
-					draw_nofill_rectangle_in_buffer(
-						state->pixel_buffer,
-						state->pixel_buffer_width,
-						state->pixel_buffer_height,
-						100 * x + 120, 100 * y + 120,
-						60, 60, red);
+					color.r = 255;
 				} break;
 				case UNIT_TYPE_NONE:
 				{
@@ -361,6 +630,15 @@ static void editor_draw_tilemap(game_state *state)
 				{
 					_assert(0);
 				} break;
+			}
+			if(t->unit_type != UNIT_TYPE_NONE)
+			{
+				draw_nofill_rectangle_in_buffer(
+					state->pixel_buffer,
+					state->pixel_buffer_width,
+					state->pixel_buffer_height,
+					TILE_SIZE * x + (TILE_SIZE + TILE_SIZE / 5), TILE_SIZE * y + (TILE_SIZE + TILE_SIZE / 5),
+					(TILE_SIZE / 5) * 3, (TILE_SIZE / 5) * 3, color);
 			}
 		}
 	}

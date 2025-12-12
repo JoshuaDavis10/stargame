@@ -141,6 +141,7 @@ typedef struct {
 	f64 timer;
 	b32 initialized;
 	game_memory memory;
+	b32 tilemap_initialized;
 	u8 *pixel_buffer;
 	u16 pixel_buffer_width;
 	u16 pixel_buffer_height;
@@ -199,6 +200,8 @@ static b32 game_initialize_tilemap(game_state *state, u64 *used_memory, void *ga
 	LOG_TRACE("width: %d, height: %d", state->memory.tilemap_width, state->memory.tilemap_height);
 	LOG_TRACE("blue: %d, green: %d, red: %d", state->memory.blue_count, state->memory.green_count, state->memory.red_count);
 
+	if(!state->tilemap_initialized)
+	{
 	/* tilemap data */
 	state->memory.tiles = 
 		(tile*)game_memory_allocate(
@@ -213,6 +216,7 @@ static b32 game_initialize_tilemap(game_state *state, u64 *used_memory, void *ga
 			(sizeof(i32) * state->memory.tilemap_width * state->memory.tilemap_height), 
 			game_memory, 
 			game_memory_size);
+	}
 
 	i32 index = 0;
 	for( ; index < (state->memory.tilemap_width * state->memory.tilemap_height); index++)
@@ -225,6 +229,8 @@ static b32 game_initialize_tilemap(game_state *state, u64 *used_memory, void *ga
 	state->memory.tilemap_offset_y = -(state->memory.tile_stride * state->memory.tilemap_height/2 - state->memory.tile_stride/2);
 
 	free(temp_level_data_buffer);
+
+	state->tilemap_initialized = true;
 
 	return(true);
 }
@@ -792,7 +798,8 @@ void game_update_and_render(
 		}
 		else if(input->spacebar == INPUT_BUTTON_STATE_PRESSED)
 		{
-			game_reset_tilemap(state);
+
+			_assert(game_initialize_tilemap(state, &used_memory, game_memory, game_memory_size, level_filename));
 		}
 	}
 	else if(state->state == STATE_STEPPING_THROUGH_MOVE)
