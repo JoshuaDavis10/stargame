@@ -799,6 +799,9 @@ void game_update_and_render(
 		else if(input->spacebar == INPUT_BUTTON_STATE_PRESSED)
 		{
 
+			/* XXX: this assumes the map hasn't been edited btw, since it avoids reallocating for larger 
+			 * sizes... maybe we need to do a free, then reallocate to reset, similar to like in the editor
+			 */
 			_assert(game_initialize_tilemap(state, &used_memory, game_memory, game_memory_size, level_filename));
 		}
 	}
@@ -914,7 +917,7 @@ void game_update_and_render(
 		if(input->spacebar == INPUT_BUTTON_STATE_PRESSED)
 		{
 			state->state = STATE_WAITING_FOR_MOVE;
-			game_reset_tilemap(state);
+			_assert(game_initialize_tilemap(state, &used_memory, game_memory, game_memory_size, level_filename));
 		}
 	}
 
@@ -1284,6 +1287,9 @@ static void game_step_through_move(game_state *state)
 		}
 		move->time_of_last_step_us = read_os_timer();
 	}
+
+	/* TODO: if a tile change causes a unit change, have that unit change the tile below it and have compounding
+	 * follow through results of the first unit placement, does that make sense? yes, do it */
 
 	u32 red_count = game_check_red_count(state);
 	if(!red_count && state->state == STATE_WAITING_FOR_MOVE)

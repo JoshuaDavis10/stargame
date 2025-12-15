@@ -30,6 +30,7 @@ typedef struct {
 	u64 time_elapsed;
 	f64 timer;
 	b32 initialized;
+	b32 tilemap_saved;
 	u8 *pixel_buffer;
 	u16 pixel_buffer_width;
 	u16 pixel_buffer_height;
@@ -50,6 +51,14 @@ static void *game_memory_allocate(u64 *used_memory, u64 size, void *game_memory,
 	void *result = (void*) ((char*)game_memory + (*used_memory));
 	(*used_memory) += size;
 	return result;
+}
+
+static void game_memory_free(u64 *used_memory, u64 size, void *game_memory, void *address)
+{
+	/* NOTE(josh): basically enforcing that we can only free off the end of the bump allocator */
+	(*used_memory) -= size;
+	void *expected_game_memory_address = (void*) ((char*)address - (*used_memory));
+	_assert(expected_game_memory_address == game_memory);
 }
 
 enum {
@@ -99,6 +108,7 @@ void game_update_and_render(
 	/* NOTE: game code expects platform layer to
 	 * initially hand it zeroed out memory 
 	 */
+	u64 level_file_size = 0;
 	if(!state->initialized)
 	{
 		b32 init_success = true;
@@ -121,16 +131,15 @@ void game_update_and_render(
 		state->pixel_buffer_width = pixel_buffer_width;
 		state->pixel_buffer_height = pixel_buffer_height;
 
-		u64 level_file_size = get_file_size(level_filename);
+		/* TODO: if new file, create a new file, just have width and height be 0
+		 */
+
+		level_file_size = get_file_size(level_filename);
 
 		if(level_file_size == 0)
 		{
 			init_success = false;
 		}
-
-		/* TODO: if new file, open a blank editor, with options to
-		 * set width/height 
-		 */
 
 		state->tilemap_memory = 
 			(void*)game_memory_allocate(
@@ -166,6 +175,7 @@ void game_update_and_render(
 	state->timer += state->time_elapsed;
 	state->last_time = read_os_timer();
 
+	/* TODO: break all this repeat code into a function PLEASE FOR THE LOVE OF GOD */
 	if(input->left_control == INPUT_BUTTON_STATE_DOWN)
 	{
 		if(input->letters[1] == INPUT_BUTTON_STATE_PRESSED)
@@ -204,6 +214,7 @@ void game_update_and_render(
 				t->unit_type = UNIT_TYPE_BLUE;
 			}
 			LOG_DEBUG("(%d, %d) tile: %d (%d, %d)", input->mouse_x, input->mouse_y, tile_index, x, y);
+			state->tilemap_saved = false;
 		}
 		if(input->letters[6] == INPUT_BUTTON_STATE_PRESSED)
 		{
@@ -241,6 +252,7 @@ void game_update_and_render(
 				t->unit_type = UNIT_TYPE_GREEN;
 			}
 			LOG_DEBUG("(%d, %d) tile: %d (%d, %d)", input->mouse_x, input->mouse_y, tile_index, x, y);
+			state->tilemap_saved = false;
 		}
 		if(input->letters[17] == INPUT_BUTTON_STATE_PRESSED)
 		{
@@ -278,6 +290,105 @@ void game_update_and_render(
 				t->unit_type = UNIT_TYPE_RED;
 			}
 			LOG_DEBUG("(%d, %d) tile: %d (%d, %d)", input->mouse_x, input->mouse_y, tile_index, x, y);
+			state->tilemap_saved = false;
+		}
+
+		if(input->letters[22] == INPUT_BUTTON_STATE_PRESSED)
+		{
+			void *tilemap_width_ptr = 0;
+			void *tilemap_height_ptr = 0;
+
+			_assert(tilemap_access(state, &tilemap_width_ptr,  0, TILEMAP_ACCESS_WIDTH));
+			_assert(tilemap_access(state, &tilemap_height_ptr, 0, TILEMAP_ACCESS_HEIGHT));
+
+			_assert(tilemap_width_ptr);
+			_assert(tilemap_height_ptr);
+
+			i32 *tilemap_width  = (i32*)tilemap_width_ptr;
+			i32 *tilemap_height = (i32*)tilemap_height_ptr;
+
+			if((*tilemap_width) > 1)
+			{
+				*(tilemap_width) -= 1;
+			}
+
+			/* TODO: move tiles around so that each tile that is still in the map remains the same */
+
+			game_memory_free(&used_memory, level_file_size, game_memory, state->tilemap_memory);
+			u64 allocation_size = sizeof(tile) * (*tilemap_width) * (*tilemap_height) + (5 * sizeof(i32));
+			state->tilemap_memory = game_memory_allocate(&used_memory, allocation_size, game_memory, game_memory_size);
+		}
+		if(input->letters[7] == INPUT_BUTTON_STATE_PRESSED)
+		{
+			void *tilemap_width_ptr = 0;
+			void *tilemap_height_ptr = 0;
+
+			_assert(tilemap_access(state, &tilemap_width_ptr,  0, TILEMAP_ACCESS_WIDTH));
+			_assert(tilemap_access(state, &tilemap_height_ptr, 0, TILEMAP_ACCESS_HEIGHT));
+
+			_assert(tilemap_width_ptr);
+			_assert(tilemap_height_ptr);
+
+			i32 *tilemap_width  = (i32*)tilemap_width_ptr;
+			i32 *tilemap_height = (i32*)tilemap_height_ptr;
+
+			if((*tilemap_height) > 1)
+			{
+				*(tilemap_height) -= 1;
+			}
+
+			/* TODO: move tiles around so that each tile that is still in the map remains the same */
+
+			game_memory_free(&used_memory, level_file_size, game_memory, state->tilemap_memory);
+			u64 allocation_size = sizeof(tile) * (*tilemap_width) * (*tilemap_height) + (5 * sizeof(i32));
+			state->tilemap_memory = game_memory_allocate(&used_memory, allocation_size, game_memory, game_memory_size);
+		}
+	}
+	else if(input->left_shift == INPUT_BUTTON_STATE_DOWN)
+	{
+		if(input->letters[22] == INPUT_BUTTON_STATE_PRESSED)
+		{
+			void *tilemap_width_ptr = 0;
+			void *tilemap_height_ptr = 0;
+
+			_assert(tilemap_access(state, &tilemap_width_ptr,  0, TILEMAP_ACCESS_WIDTH));
+			_assert(tilemap_access(state, &tilemap_height_ptr, 0, TILEMAP_ACCESS_HEIGHT));
+
+			_assert(tilemap_width_ptr);
+			_assert(tilemap_height_ptr);
+
+			i32 *tilemap_width  = (i32*)tilemap_width_ptr;
+			i32 *tilemap_height = (i32*)tilemap_height_ptr;
+
+			*(tilemap_width) += 1;
+
+			/* TODO: move tiles around so that each tile that is still in the map remains the same */
+
+			game_memory_free(&used_memory, level_file_size, game_memory, state->tilemap_memory);
+			u64 allocation_size = sizeof(tile) * (*tilemap_width) * (*tilemap_height) + (5 * sizeof(i32));
+			state->tilemap_memory = game_memory_allocate(&used_memory, allocation_size, game_memory, game_memory_size);
+		}
+		if(input->letters[7] == INPUT_BUTTON_STATE_PRESSED)
+		{
+			void *tilemap_width_ptr = 0;
+			void *tilemap_height_ptr = 0;
+
+			_assert(tilemap_access(state, &tilemap_width_ptr,  0, TILEMAP_ACCESS_WIDTH));
+			_assert(tilemap_access(state, &tilemap_height_ptr, 0, TILEMAP_ACCESS_HEIGHT));
+
+			_assert(tilemap_width_ptr);
+			_assert(tilemap_height_ptr);
+
+			i32 *tilemap_width  = (i32*)tilemap_width_ptr;
+			i32 *tilemap_height = (i32*)tilemap_height_ptr;
+
+			*(tilemap_height) += 1;
+
+			/* TODO: move tiles around so that each tile that is still in the map remains the same */
+
+			game_memory_free(&used_memory, level_file_size, game_memory, state->tilemap_memory);
+			u64 allocation_size = sizeof(tile) * (*tilemap_width) * (*tilemap_height) + (5 * sizeof(i32));
+			state->tilemap_memory = game_memory_allocate(&used_memory, allocation_size, game_memory, game_memory_size);
 		}
 	}
 	else
@@ -318,6 +429,7 @@ void game_update_and_render(
 				t->tile_type = TILE_TYPE_BLUE;
 			}
 			LOG_DEBUG("(%d, %d) tile: %d (%d, %d)", input->mouse_x, input->mouse_y, tile_index, x, y);
+			state->tilemap_saved = false;
 		}
 		if(input->letters[6] == INPUT_BUTTON_STATE_PRESSED)
 		{
@@ -355,6 +467,7 @@ void game_update_and_render(
 				t->tile_type = TILE_TYPE_GREEN;
 			}
 			LOG_DEBUG("(%d, %d) tile: %d (%d, %d)", input->mouse_x, input->mouse_y, tile_index, x, y);
+			state->tilemap_saved = false;
 		}
 		if(input->letters[17] == INPUT_BUTTON_STATE_PRESSED)
 		{
@@ -392,6 +505,7 @@ void game_update_and_render(
 				t->tile_type = TILE_TYPE_RED;
 			}
 			LOG_DEBUG("(%d, %d) tile: %d (%d, %d)", input->mouse_x, input->mouse_y, tile_index, x, y);
+			state->tilemap_saved = false;
 		}
 		if(input->letters[23] == INPUT_BUTTON_STATE_PRESSED)
 		{
@@ -429,8 +543,11 @@ void game_update_and_render(
 				t->unit_type = UNIT_TYPE_NONE;
 			}
 			LOG_DEBUG("(%d, %d) tile: %d (%d, %d)", input->mouse_x, input->mouse_y, tile_index, x, y);
+			state->tilemap_saved = false;
 		}
 	}
+
+	/* TODO: increment blue, green, red count with SHIFT + B/G/R and display the values as text */
 
 	if(input->spacebar == INPUT_BUTTON_STATE_PRESSED)
 	{
@@ -447,11 +564,9 @@ void game_update_and_render(
 		i32 tilemap_height = *((i32*)tilemap_height_ptr);
 
 		write_buffer_into_file_truncate(level_filename, state->tilemap_memory, tilemap_width * tilemap_height * sizeof(tile) + 5 * sizeof(i32)); 
+		state->tilemap_saved = true;
 		LOG_INFO("saved tilemap to '%s'", level_filename);
 	}
-
-	/* TODO: edit tilemap based on input */
-	/* TODO: some button to save to file, or maybe just a key combo */
 
 	PROFILER_FINISH_TIMING_BLOCK(update);
 
