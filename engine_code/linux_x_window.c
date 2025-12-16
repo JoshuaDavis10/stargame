@@ -77,12 +77,12 @@ int main(int argc, char **argv)
 
 	/* create connection to x server */
 	x_connection = xcb_connect(NULL, &x_screen_number);
-	LOG_INFO("Connected to X server.");
+	log_info("Connected to X server.");
 
 	/* check if connection worked. returns 0 if success */
 	i32 res = xcb_connection_has_error(x_connection);
 	if(res > 0) {
-		LOG_ERROR("xcb_connection_has_error returned %d", res);
+		log_error("xcb_connection_has_error returned %d", res);
 		return(1);
 	}
 
@@ -148,7 +148,7 @@ int main(int argc, char **argv)
 											(inherit from root) */
 		x_win_value_mask,				/*value_mask/value_list*/
 		x_win_value_list);
-	LOG_INFO("Created X window.");
+	log_info("Created X window.");
 
 	/* register for WM_DELETE_WINDOW event */
 	/* create internal atom for WM_PROTOCOLS */
@@ -163,14 +163,14 @@ int main(int argc, char **argv)
 				x_internal_atom_wm_protocols,
 				&x_error);
 	if(x_error) {
-		LOG_ERROR("%u", x_error->error_code);
+		log_error("%u", x_error->error_code);
 		_assert(0);
 	}
 
 	/* get reply */
 	xcb_atom_t x_atom_wm_protocols = x_wm_protocols_reply->atom;
 	if(!x_atom_wm_protocols) {
-		LOG_ERROR("failed to get WM_PROTOCOLS atom");
+		log_error("failed to get WM_PROTOCOLS atom");
 		return(1);
 	}
 	free(x_wm_protocols_reply);
@@ -186,14 +186,14 @@ int main(int argc, char **argv)
 				x_internal_atom_wm_delete_window,
 				&x_error);
 	if(x_error) {
-		LOG_ERROR("%u", x_error->error_code);
+		log_error("%u", x_error->error_code);
 		_assert(0);
 	}
 
 	/* get reply */
 	xcb_atom_t x_atom_wm_delete_window = x_wm_delete_window_reply->atom;
 	if(!x_atom_wm_delete_window) {
-		LOG_ERROR("failed to get WM_DELETE_WINDOW atom");
+		log_error("failed to get WM_DELETE_WINDOW atom");
 		return(1);
 	}
 	free(x_wm_delete_window_reply);
@@ -216,12 +216,12 @@ int main(int argc, char **argv)
 				x_internal_atom_wm_state,
 				&x_error);
 	if(x_error) {
-		LOG_ERROR("%u", x_error->error_code);
+		log_error("%u", x_error->error_code);
 		_assert(0);
 	}
 	xcb_atom_t x_atom_wm_state = x_wm_state_reply->atom;
 	if(!x_atom_wm_state) {
-		LOG_ERROR("failed to get _NET_WM_STATE atom");
+		log_error("failed to get _NET_WM_STATE atom");
 		return(1);
 	}
 	free(x_wm_state_reply);
@@ -235,12 +235,12 @@ int main(int argc, char **argv)
 				x_internal_atom_wm_fullscreen,
 				&x_error);
 	if(x_error) {
-		LOG_ERROR("%u", x_error->error_code);
+		log_error("%u", x_error->error_code);
 		_assert(0);
 	}
 	xcb_atom_t x_atom_wm_fullscreen = x_wm_fullscreen_reply->atom;
 	if(!x_atom_wm_fullscreen) {
-		LOG_ERROR("failed to get _NET_WM_STATE_FULLSCREEN atom");
+		log_error("failed to get _NET_WM_STATE_FULLSCREEN atom");
 		return(1);
 	}
 	free(x_wm_fullscreen_reply);
@@ -253,7 +253,7 @@ int main(int argc, char **argv)
 			32, 1,
 			&x_atom_wm_fullscreen);
 
-	LOG_INFO("Set X window properties.");
+	log_info("Set X window properties.");
 
 	/* load key symbols */
 	x_load_key_symbols(&x_global_keymap_info, x_connection, x_setup);
@@ -276,11 +276,11 @@ int main(int argc, char **argv)
 			x_global_window_height);					
 	xcb_create_gc(x_connection, x_graphics_context, x_backbuffer,
 				XCB_GC_FOREGROUND | XCB_GC_BACKGROUND, x_gc_values);
-	LOG_INFO("Set up pixel buffer.");
+	log_info("Set up pixel buffer.");
 
 	u64 pagesize = sysconf(_SC_PAGESIZE);
-	LOG_DEBUG("pagesize: %u", pagesize);
-	LOG_DEBUG("lib: %s", argv[1]);
+	log_debug("pagesize: %u", pagesize);
+	log_debug("lib: %s", argv[1]);
 	if(strcmp("./build/libgame.so", argv[1]) == 0)
 	{
 		x_global_game_memory_size = 16 * pagesize;
@@ -312,11 +312,11 @@ int main(int argc, char **argv)
 	memset(x_global_game_memory_ptr, 0, x_global_game_memory_size);
 
 	xcb_map_window(x_connection, x_window_id);
-	LOG_INFO("Mapped X window.");
+	log_info("Mapped X window.");
 
 	/* NOTE: xcb_flush blocks until the write is complete */
 	if(xcb_flush(x_connection) < 1) { /*returns <= 0 on failure*/
-		LOG_ERROR("xcb_flush failed");
+		log_error("xcb_flush failed");
 		return(1);
 	}
 
@@ -339,7 +339,7 @@ int main(int argc, char **argv)
 					
 					xcb_generic_error_t *x_error = 
 						(xcb_generic_error_t *)x_event;
-					LOG_ERROR("\nerror code: %u\nminor code: %u\n"
+					log_error("\nerror code: %u\nminor code: %u\n"
 								"major code: %u\n",
 								x_error->error_code,
 								x_error->minor_code,
@@ -349,7 +349,7 @@ int main(int argc, char **argv)
 				} break;
 				case XCB_EXPOSE: 
 				{
-					LOG_DEBUG("Expose event receieved");
+					log_debug("Expose event receieved");
 				} break;
 				case XCB_KEY_PRESS:
 				{
@@ -443,14 +443,14 @@ int main(int argc, char **argv)
 						x_client_message_event->data.data32[0];
 					if(x_client_message_data32 == x_atom_wm_delete_window)
 					{
-						LOG_DEBUG("WM_DELETE_WINDOW event");
-						LOG_INFO("Closing window...");
+						log_debug("WM_DELETE_WINDOW event");
+						log_info("Closing window...");
 						x_running = 0;
 					}
 				} break;
 				default: {
 							 /*
-					LOG_DEBUG("default event:\nresponse type = %u", 
+					log_debug("default event:\nresponse type = %u", 
 							x_event->response_type); 
 							*/
 				} break;
@@ -464,7 +464,7 @@ int main(int argc, char **argv)
 		void *game_shared_object_handle = dlopen(argv[1], RTLD_NOW);
 		if(!game_shared_object_handle)
 		{
-			LOG_ERROR("dlopen: %s", dlerror());
+			log_error("dlopen: %s", dlerror());
 		}
 		_assert(game_shared_object_handle);
 		void (*game_update_and_render)() = dlsym(
@@ -472,7 +472,7 @@ int main(int argc, char **argv)
 				"game_update_and_render");
 		if(!game_update_and_render)
 		{
-			LOG_ERROR("dlsym: %s", dlerror());
+			log_error("dlsym: %s", dlerror());
 		}
 		_assert(game_update_and_render);
 
@@ -492,7 +492,7 @@ int main(int argc, char **argv)
 		u64 elapsed = frame_end_time_us - frame_start_time_us;
 		if(elapsed > FRAME_TIME)
 		{
-			LOG_WARN("dropped frame (%llu microseconds spent this frame | frame time goal: %llu).",
+			log_warn("dropped frame (%llu microseconds spent this frame | frame time goal: %llu).",
 				elapsed, FRAME_TIME);
 			frame_start_time_us = read_os_timer();
 			continue;
@@ -530,11 +530,11 @@ int main(int argc, char **argv)
 	/* NOTE: these are technically optional I think, but might
 	 * as well cleanup
 	 */
-	LOG_INFO("Window closed.");
+	log_info("Window closed.");
 	free(x_pixmap_data);
 	xcb_destroy_window(x_connection, x_window_id);
-	LOG_INFO("Destroyed X window.");
+	log_info("Destroyed X window.");
 	xcb_disconnect(x_connection);
-	LOG_INFO("Disconnected from X server.");
+	log_info("Disconnected from X server.");
 	return 0;
 }

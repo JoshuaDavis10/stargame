@@ -25,6 +25,7 @@ enum {
 	INPUT_BUTTON_STATE_PRESSED = 0x01
 };
 
+/* TODO: this should just be called input_state. its not X specific */
 typedef struct {
 	union {
 		struct {

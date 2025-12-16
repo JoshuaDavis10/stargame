@@ -351,7 +351,7 @@ void x_register_key_stroke(
 			input->numbers[9] = down;
 		} break;
 		default: {
-			LOG_TRACE("x_register_key_stroke: unidentified keysym %x", 
+			log_trace("x_register_key_stroke: unidentified keysym %x", 
 					keysym);
 		} break;
 	}
@@ -386,7 +386,7 @@ void x_register_mouse_stroke(
 		} break;
 		default:
 		{
-			LOG_TRACE("x_register_mouse_stroke: unidentified mouse " 
+			log_trace("x_register_mouse_stroke: unidentified mouse " 
 						"button %x",
 						button);
 		} break;
@@ -405,7 +405,7 @@ void x_load_key_symbols(
 		xcb_connection_t *x_connection, 
 		const xcb_setup_t *x_setup) 
 {
-	LOG_INFO("loading key symbols...");
+	log_info("loading key symbols...");
 
 	info->x_max_key_code = x_setup->max_keycode;
 	info->x_min_key_code = x_setup->min_keycode;
@@ -448,7 +448,7 @@ void x_load_key_symbols(
 				x_get_keyboard_mapping_cookie,
 				&x_error);
 	if(x_error) {
-		LOG_ERROR("%u", x_error->error_code);
+		log_error("%u", x_error->error_code);
 		_assert(0);
 	}
 
@@ -481,11 +481,11 @@ void x_load_key_symbols(
 	}
 
 	free(x_get_keyboard_mapping_reply);
-	LOG_INFO("key symbols loaded.");
+	log_info("key symbols loaded.");
 }
 
 void x_print_mouse_button(x_mouse_button x_mb) {
-	LOG_DEBUG(" ");
+	log_debug(" ");
 	switch(x_mb) {
 		case X_MOUSE_LEFT: {
 			printf("'LEFT MOUSE BUTTON' ");
@@ -509,7 +509,7 @@ void x_print_mouse_button(x_mouse_button x_mb) {
 }
 
 void x_print_keysym(x_key x_keysym) {
-	LOG_DEBUG(" ");
+	log_debug(" ");
 	switch(x_keysym) {
 		case X_KEY_BACKSPACE: {
 			printf("'BACKSPACE'");

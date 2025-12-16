@@ -1,8 +1,0 @@
-been writing some utility functions in util.c
-i.e. assertions/logging
-apparently
-
-	- __VA_ARGS__
-	- inline functions
-
-are not supported in c89??

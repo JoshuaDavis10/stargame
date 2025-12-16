@@ -11,9 +11,6 @@
 
 #define FONTSIZE 1
 
-#define MAX_TILEMAP_WIDTH  10
-#define MAX_TILEMAP_HEIGHT 10
-
 #define STEP_TIME 300000.0
 
 static const char *unit_type_red_label = "RED";
@@ -179,7 +176,7 @@ static b32 game_initialize_tilemap(game_state *state, u64 *used_memory, void *ga
 {
 	u64 level_file_size = get_file_size(level_filename);
 
-	LOG_TRACE("level file size: %llu", level_file_size);
+	log_trace("level file size: %llu", level_file_size);
 
 	/* TODO: there's gotta be a way to just read the file directly into the game state, instead of this
 	 * temp buffer, but this is init stuff so maybe its just ok...*/
@@ -197,8 +194,8 @@ static b32 game_initialize_tilemap(game_state *state, u64 *used_memory, void *ga
 
 	tile *level_tile_data_pointer = (tile*)(temp_level_data_buffer + 5);
 
-	LOG_TRACE("width: %d, height: %d", state->memory.tilemap_width, state->memory.tilemap_height);
-	LOG_TRACE("blue: %d, green: %d, red: %d", state->memory.blue_count, state->memory.green_count, state->memory.red_count);
+	log_trace("width: %d, height: %d", state->memory.tilemap_width, state->memory.tilemap_height);
+	log_trace("blue: %d, green: %d, red: %d", state->memory.blue_count, state->memory.green_count, state->memory.red_count);
 
 	if(!state->tilemap_initialized)
 	{
@@ -357,8 +354,8 @@ static void game_draw_tilemap(game_state *state)
 						} break;
 						default:
 						{
-							LOG_ERROR("tiletype from: %d", state->memory.tiles[index].transition_tile_type_from);
-							LOG_ERROR("tile: %d", index);
+							log_error("tiletype from: %d", state->memory.tiles[index].transition_tile_type_from);
+							log_error("tile: %d", index);
 							_assert(0);
 						} break;
 					}
@@ -379,8 +376,8 @@ static void game_draw_tilemap(game_state *state)
 						} break;
 						default:
 						{
-							LOG_ERROR("tiletype to: %d", state->memory.tiles[index].transition_tile_type_to);
-							LOG_ERROR("tile: %d", index);
+							log_error("tiletype to: %d", state->memory.tiles[index].transition_tile_type_to);
+							log_error("tile: %d", index);
 							_assert(0);
 						} break;
 					}
@@ -418,8 +415,8 @@ static void game_draw_tilemap(game_state *state)
 			} break;
 			default:
 			{
-				LOG_ERROR("tiletype: %d", state->memory.tiles[index].tile_type);
-				LOG_ERROR("tile: %d", index);
+				log_error("tiletype: %d", state->memory.tiles[index].tile_type);
+				log_error("tile: %d", index);
 				_assert(0);
 			} break;
 		}
@@ -554,8 +551,8 @@ static void game_draw_tilemap(game_state *state)
 			} break;
 			default:
 			{
-				LOG_ERROR("unit type: %d", state->memory.tiles[index].unit_type);
-				LOG_ERROR("tile: %d", index);
+				log_error("unit type: %d", state->memory.tiles[index].unit_type);
+				log_error("tile: %d", index);
 				_assert(0);
 			} break;
 		}
@@ -609,7 +606,7 @@ void game_update_and_render(
 
 		/* set up jstring stuff */
 	state->memory.jstring_memory = game_memory_allocate(&used_memory, JSTRING_MEMORY_SIZE, game_memory, game_memory_size);
-	if(!jstring_load_logging_function(LOG_LIB))
+	if(!jstring_load_logging_function(log_lib))
 	{
 		_assert(0);
 	}
@@ -658,30 +655,30 @@ void game_update_and_render(
 
 		if(!game_initialize_tilemap(state, &used_memory, game_memory, game_memory_size, level_filename))
 		{
-			LOG_ERROR("failed to initialize game state! tilemap initialization failed.");
+			log_error("failed to initialize game state! tilemap initialization failed.");
 			init_success = false;
 		}
 
 		if(!game_initialize_meshes(state))
 		{
-			LOG_ERROR("failed to initialize game state! mesh data initialization failed.");
+			log_error("failed to initialize game state! mesh data initialization failed.");
 			init_success = false;
 		}
 
-		LOG_DEBUG("game memory addr: %p", game_memory);
-		LOG_DEBUG("->game state mem: %p", state);
-		LOG_DEBUG("->jstring mem:    %p", state->memory.jstring_memory);
-		LOG_DEBUG("->mesh data mem:  %p", state->memory.mesh_data);
-		LOG_DEBUG("->position mem:   %p", state->memory.vertex_position_data);
-		LOG_DEBUG("->color mem:      %p", state->memory.vertex_color_data);
-		LOG_DEBUG("->tilemap:        %p", state->memory.tiles);
-		LOG_DEBUG("->target tile ids:%p", state->memory.move.target_tile_ids);
-		LOG_DEBUG("game memory size: %u", game_memory_size);
-		LOG_DEBUG("used memory     : %u", used_memory);
+		log_debug("game memory addr: %p", game_memory);
+		log_debug("->game state mem: %p", state);
+		log_debug("->jstring mem:    %p", state->memory.jstring_memory);
+		log_debug("->mesh data mem:  %p", state->memory.mesh_data);
+		log_debug("->position mem:   %p", state->memory.vertex_position_data);
+		log_debug("->color mem:      %p", state->memory.vertex_color_data);
+		log_debug("->tilemap:        %p", state->memory.tiles);
+		log_debug("->target tile ids:%p", state->memory.move.target_tile_ids);
+		log_debug("game memory size: %u", game_memory_size);
+		log_debug("used memory     : %u", used_memory);
 
 		if(init_success)
 		{
-			LOG_INFO("initialized game state.");
+			log_info("initialized game state.");
 		}
 	}
 
@@ -925,7 +922,7 @@ void game_update_and_render(
 	if(state->timer > 2000000.0)
 	{
 		/* TODO: read cpu_frequency at startup so that this doesn't take 100ms */
-		finish_and_print_profile(LOG_TRACE);
+		finish_and_print_profile(log_trace);
 		state->timer = 0.0;
 	}
 }
@@ -1061,7 +1058,7 @@ static b32 game_initialize_meshes(game_state *state)
 
 	state->memory.vertex_count += state->memory.mesh_data[MESH_TYPE_UNIT_TRANSITIONING].vertex_count;
 
-	LOG_TRACE("game initialize meshes finished (vertex count: %u)", state->memory.vertex_count);
+	log_trace("game initialize meshes finished (vertex count: %u)", state->memory.vertex_count);
 	_assert(state->memory.vertex_count <= MAX_VERTICES);
 	return(true);
 } 

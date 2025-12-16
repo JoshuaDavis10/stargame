@@ -255,7 +255,7 @@ b32 game_add_shape(
 	}
 	else
 	{
-		LOG_WARN("cannot create more shapes. reached maximum of %u",
+		log_warn("cannot create more shapes. reached maximum of %u",
 				MAX_SHAPE_COUNT);
 		return false;
 	}
@@ -312,9 +312,9 @@ void game_update_and_render(
 	 */
 	if(!state->initialized)
 	{
-		LOG_DEBUG("game memory addr: %p", game_memory);
-		LOG_DEBUG("game memory size: %u", game_memory_size);
-		LOG_DEBUG("used memory     : %u", used_memory);
+		log_debug("game memory addr: %p", game_memory);
+		log_debug("game memory size: %u", game_memory_size);
+		log_debug("used memory     : %u", used_memory);
 
 		/* state */
 		state->initialized = true;
@@ -351,7 +351,7 @@ void game_update_and_render(
 		state->shape_position_list = (vector_2 *)
 			((char*)(state->shape_type_list) + shape_type_memory_size);
 
-		LOG_INFO("initialized game state.");
+		log_info("initialized game state.");
 	}
 
 	/* update */
@@ -434,7 +434,7 @@ void game_update_and_render(
 			world_pos,
 			SHAPE_TYPE_TRIANGLE))
 		{
-			LOG_TRACE("created triangle at:\n"
+			log_trace("created triangle at:\n"
 				"mouse: (%u, %u)\n"
 				"shape: (%.2f, %.2f)",
 				(input->mouse_x), (input->mouse_y),
@@ -460,7 +460,7 @@ void game_update_and_render(
 			world_pos,
 			SHAPE_TYPE_SQUARE))
 		{
-			LOG_TRACE("created square at:\n"
+			log_trace("created square at:\n"
 				"mouse: (%u, %u)\n"
 				"shape: (%.2f, %.2f)",
 				(input->mouse_x), (input->mouse_y),
@@ -486,7 +486,7 @@ void game_update_and_render(
 			world_pos,
 			SHAPE_TYPE_DIAMOND))
 		{
-			LOG_TRACE("created diamond at:\n"
+			log_trace("created diamond at:\n"
 				"mouse: (%u, %u)\n"
 				"shape: (%.2f, %.2f)",
 				(input->mouse_x), (input->mouse_y),
@@ -512,7 +512,7 @@ void game_update_and_render(
 			world_pos,
 			SHAPE_TYPE_TRAPEZOID))
 		{
-			LOG_TRACE("created trapezoid at:\n"
+			log_trace("created trapezoid at:\n"
 				"mouse: (%u, %u)\n"
 				"shape: (%.2f, %.2f)",
 				(input->mouse_x), (input->mouse_y),
@@ -538,7 +538,7 @@ void game_update_and_render(
 			world_pos,
 			SHAPE_TYPE_HEXAGON))
 		{
-			LOG_TRACE("created hexagon at:\n"
+			log_trace("created hexagon at:\n"
 				"mouse: (%u, %u)\n"
 				"shape: (%.2f, %.2f)",
 				(input->mouse_x), (input->mouse_y),
@@ -687,7 +687,7 @@ void game_update_and_render(
 	PROFILER_FINISH_TIMING_BLOCK(render);
 	if(state->timer > 2000000.0)
 	{
-		finish_and_print_profile(LOG_TRACE);
+		finish_and_print_profile(log_trace);
 		state->timer = 0.0;
 	}
 }
