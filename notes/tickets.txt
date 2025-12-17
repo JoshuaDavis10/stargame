@@ -18,10 +18,10 @@ TICKETS:
 				 - make sure rendered tile size is adjusted after reload and is based on MAX(width, height) rather than width every time. that way any level can fit on screen correctly
 [ ] (1, 5, -) -> FEATURE: tilegame unit placements that cause other units to change, should sort of "recursively" cause those changed units to change their tile, resulting in compounding effects
 				 - must be able to handle case where a tile would be changed by 2 tiles and/or units at once, i.e. what is order of operations
-[ ] (1, 6, ALL OTHER PROJECT 1 TICKETS REQUIRED) -> design 10 tutorial/demo/intro levels to hand out as a playtest to friends
+[ ] (1, 6, ALL OTHER PROJECT 1 TICKETS REQUIRED) -> design 10 tutorial/demo/intro levels to hand out as a playtest to friends. obv the game will need to like load them in order, loading lvl one at startup..
 
 [ ] (2, 0, -) -> windows platform layer
-[ ] (2, 1, -) -> win32_util.c
+[ ] (2, 1, -) -> IN PROGRESS: win32_util.c
 
 [ ] (3, 0, -) -> UI code
 				 - menus, buttons, stuff you'll need for UI. KEEP VERY SIMPLE

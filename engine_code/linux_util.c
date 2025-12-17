@@ -41,6 +41,8 @@ void _assert_log(b32 expression, const char *message, ...)
 		va_start(arg_ptr, message);
     	vsnprintf(output, MAX_LOGGER_MESSAGE_SIZE, message, arg_ptr);
 		va_end(arg_ptr);
+		/* XXX(josh): __FILE__ and __LINE__ will just show up as this file and this function's lines. i.e. that's not useful information
+		 * so take it out */
 		printf("\e[1;31m[ASSERT]: \e[0;31m%s, FILE: %s, LINE: %d\e[0;37m\n", output, __FILE__, __LINE__);
 		__builtin_trap();
 	}
@@ -494,7 +496,7 @@ b32 zero_memory(void *memory, u64 size)
 	return(false);
 }
 
-/* TODO: dynamic arrays */
+/* dynamic arrays */
 /* NOTE(josh): not rlly sure how to name stuff, but I guess width is "stride", size is how much is actually allocated,
  * and length is how much is actually in it? */
 #define DYNAMIC_ARRAY_HEADER_SIZE 3 * sizeof(u64)
