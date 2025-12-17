@@ -21,9 +21,9 @@ static const char *tile_type_red_label = "RED";
 static const char *tile_type_green_label = "GREEN";
 static const char *tile_type_transitioning_label = "...";
 
-#define BRIGHT_SKEW_TILE 0.1f
+#define BRIGHT_SKEW_TILE 0.15f
 #define BRIGHT_SKEW_UNIT 0.2f
-#define DARK_SKEW_TILE 0.65f
+#define DARK_SKEW_TILE 0.75f
 #define DARK_SKEW_UNIT 1.0f
 
 static const vector_4 tile_color_blue = {BRIGHT_SKEW_TILE, BRIGHT_SKEW_TILE, DARK_SKEW_TILE, 1.0f};
@@ -199,20 +199,19 @@ static b32 game_initialize_tilemap(game_state *state, u64 *used_memory, void *ga
 
 	if(!state->tilemap_initialized)
 	{
-	/* tilemap data */
-	state->memory.tiles = 
-		(tile*)game_memory_allocate(
-			used_memory, 
-			(sizeof(tile) * state->memory.tilemap_width * state->memory.tilemap_height), 
-			game_memory, 
-			game_memory_size);
-
-	state->memory.move.target_tile_ids = 
-		(i32*)game_memory_allocate(
-			used_memory, 
-			(sizeof(i32) * state->memory.tilemap_width * state->memory.tilemap_height), 
-			game_memory, 
-			game_memory_size);
+		/* tilemap data */
+		state->memory.move.target_tile_ids = 
+			(i32*)game_memory_allocate(
+				used_memory, 
+				(sizeof(i32) * state->memory.tilemap_width * state->memory.tilemap_height), 
+				game_memory, 
+				game_memory_size);
+		state->memory.tiles = 
+			(tile*)game_memory_allocate(
+				used_memory, 
+				(sizeof(tile) * state->memory.tilemap_width * state->memory.tilemap_height), 
+				game_memory, 
+				game_memory_size);
 	}
 
 	i32 index = 0;
@@ -897,19 +896,19 @@ void game_update_and_render(
 			pixel_buffer_width,
 			pixel_buffer_height,
 			pixel_buffer_width/2, pixel_buffer_height/2 - FONTSIZE * 4 * 10,
-			FONTSIZE * 4, win_string, magenta);
+			FONTSIZE * 4, win_string, white);
 		draw_text_in_buffer_centered(
 			pixel_buffer,
 			pixel_buffer_width,
 			pixel_buffer_height,
 			pixel_buffer_width/2, pixel_buffer_height/2,
-			FONTSIZE * 4, instruction_string, magenta);
+			FONTSIZE * 4, instruction_string, white);
 		draw_text_in_buffer_centered(
 			pixel_buffer,
 			pixel_buffer_width,
 			pixel_buffer_height,
 			pixel_buffer_width/2, pixel_buffer_height/2 + FONTSIZE * 4 * 10,
-			FONTSIZE * 4, instruction_string2, magenta);
+			FONTSIZE * 4, instruction_string2, white);
 
 		if(input->spacebar == INPUT_BUTTON_STATE_PRESSED)
 		{

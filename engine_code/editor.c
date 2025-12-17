@@ -1,14 +1,10 @@
 #include "game.h"
 
-#include "linux_util.c"
+#include "util.c"
 #include "jstring.h"
 #include "math.c"
 
 #include "profiler.c"
-
-/* TODO: this needs to be some constant * the width of tiles or smn so that it scales with map size 
- * (inversely ofc) */
-#define TILE_SIZE 50
 
 typedef struct {
 	vector_2 position;
@@ -20,6 +16,10 @@ typedef struct {
 #define JSTRING_MEMORY_SIZE 1024
 
 #include "tile_types.h"
+
+#define TILEMAP_OFFSET_X 50
+#define TILEMAP_OFFSET_Y 50
+#define TILE_SIZE_COEFFICIENT 400
 
 typedef struct {
 	u32 blue_counter;
@@ -47,6 +47,7 @@ typedef struct {
 	u16 pixel_buffer_height;
 	u64 tilemap_data_size;
 	tilemap *tilemap_data; 
+	i32 tile_size;
 	file level_file;
 } game_state;
 
@@ -63,6 +64,8 @@ static void editor_change_tile_at_mouse_location(game_state *state, x_input_stat
 static void editor_change_tilemap_width(game_state *state, b32 increment);
 static void editor_change_tilemap_height(game_state *state, b32 increment);
 static void editor_change_tilemap_unit_counter(game_state *state, b32 increment, i32 unit_counter_type);
+
+static i32 max(i32 x, i32 y);
 
 static void *game_memory_allocate(u64 *used_memory, u64 size, void *game_memory, u64 game_memory_size)
 {
@@ -182,6 +185,8 @@ void game_update_and_render(
 				state->tilemap_data, 
 				state->tilemap_data->width * state->tilemap_data->height * sizeof(tile) + 5 * sizeof(i32)); 
 
+			state->tile_size = TILE_SIZE_COEFFICIENT / max_i32(state->tilemap_data->width, state->tilemap_data->height);
+
 			state->tilemap_saved = true;
 		}
 		else /* level exists */
@@ -201,8 +206,9 @@ void game_update_and_render(
 			{
 				init_success = false;
 			}
+			state->tile_size = TILE_SIZE_COEFFICIENT / max_i32(state->tilemap_data->width, state->tilemap_data->height);
+			state->tilemap_saved = true;
 		}
-
 
 		if(init_success)
 		{
@@ -223,7 +229,6 @@ void game_update_and_render(
 	state->timer += state->time_elapsed;
 	state->last_time = read_os_timer();
 
-	/* TODO: what keypresses change unit counters ? */
 	if(input->left_control == INPUT_BUTTON_STATE_DOWN)
 	{
 		if(input->letters[1] == INPUT_BUTTON_STATE_PRESSED)
@@ -241,19 +246,33 @@ void game_update_and_render(
 
 		if(input->letters[22] == INPUT_BUTTON_STATE_PRESSED)
 		{
-			editor_change_tilemap_width(state, true);
 			game_memory_free(&used_memory, state->tilemap_data_size, game_memory, state->tilemap_data);
-			u64 allocation_size = sizeof(tile) * (state->tilemap_data->width) * (state->tilemap_data->height) + (5 * sizeof(i32));
+			u64 allocation_size = 
+				sizeof(tile) * (state->tilemap_data->width + 1) * (state->tilemap_data->height) + (5 * sizeof(i32));
 			state->tilemap_data_size = allocation_size;
 			state->tilemap_data = game_memory_allocate(&used_memory, allocation_size, game_memory, game_memory_size);
+			editor_change_tilemap_width(state, true);
 		}
 		if(input->letters[7] == INPUT_BUTTON_STATE_PRESSED)
 		{
-			editor_change_tilemap_height(state, true);
 			game_memory_free(&used_memory, state->tilemap_data_size, game_memory, state->tilemap_data);
-			u64 allocation_size = sizeof(tile) * (state->tilemap_data->width) * (state->tilemap_data->height) + (5 * sizeof(i32));
+			u64 allocation_size = 
+				sizeof(tile) * (state->tilemap_data->width) * (state->tilemap_data->height + 1) + (5 * sizeof(i32));
 			state->tilemap_data_size = allocation_size;
 			state->tilemap_data = game_memory_allocate(&used_memory, allocation_size, game_memory, game_memory_size);
+			editor_change_tilemap_height(state, true);
+		}
+		if(input->numbers[1] == INPUT_BUTTON_STATE_PRESSED)
+		{
+			editor_change_tilemap_unit_counter(state, true, UNIT_COUNTER_BLUE);
+		}
+		if(input->numbers[2] == INPUT_BUTTON_STATE_PRESSED)
+		{
+			editor_change_tilemap_unit_counter(state, true, UNIT_COUNTER_GREEN);
+		}
+		if(input->numbers[3] == INPUT_BUTTON_STATE_PRESSED)
+		{
+			editor_change_tilemap_unit_counter(state, true, UNIT_COUNTER_RED);
 		}
 	}
 	else if(input->left_shift == INPUT_BUTTON_STATE_DOWN)
@@ -273,6 +292,18 @@ void game_update_and_render(
 			u64 allocation_size = sizeof(tile) * (state->tilemap_data->width) * (state->tilemap_data->height) + (5 * sizeof(i32));
 			state->tilemap_data_size = allocation_size;
 			state->tilemap_data = game_memory_allocate(&used_memory, allocation_size, game_memory, game_memory_size);
+		}
+		if(input->numbers[1] == INPUT_BUTTON_STATE_PRESSED)
+		{
+			editor_change_tilemap_unit_counter(state, false, UNIT_COUNTER_BLUE);
+		}
+		if(input->numbers[2] == INPUT_BUTTON_STATE_PRESSED)
+		{
+			editor_change_tilemap_unit_counter(state, false, UNIT_COUNTER_GREEN);
+		}
+		if(input->numbers[3] == INPUT_BUTTON_STATE_PRESSED)
+		{
+			editor_change_tilemap_unit_counter(state, false, UNIT_COUNTER_RED);
 		}
 	}
 	else
@@ -306,6 +337,22 @@ void game_update_and_render(
 		log_info("saved tilemap to '%s'", state->level_file.filename);
 	}
 
+	/* XXX: bro, we really need a jstring_create_formatted() function or smn this is hell */
+	jstring blue_counter_text = jstring_create_temporary("BLUE COUNT ", jstring_length("BLUE COUNT "));
+	jstring green_counter_text = jstring_create_temporary("GREEN COUNT ", jstring_length("GREEN COUNT "));
+	jstring red_counter_text = jstring_create_temporary("RED COUNT ", jstring_length("RED COUNT "));
+
+	jstring blue_counter_number = jstring_create_integer(state->tilemap_data->blue_counter);
+	jstring green_counter_number = jstring_create_integer(state->tilemap_data->green_counter);
+	jstring red_counter_number = jstring_create_integer(state->tilemap_data->red_counter);
+
+	_assert_log(jstring_concatenate_jstring(&blue_counter_text, blue_counter_number), 
+		"failed to concatenate '%s' with '%s'", blue_counter_text.data, blue_counter_number.data);
+	_assert_log(jstring_concatenate_jstring(&green_counter_text, green_counter_number), 
+		"failed to concatenate '%s' with '%s'", green_counter_text.data, green_counter_number.data);
+	_assert_log(jstring_concatenate_jstring(&red_counter_text, red_counter_number), 
+		"failed to concatenate '%s' with '%s'", red_counter_text.data, red_counter_number.data);
+
 	PROFILER_FINISH_TIMING_BLOCK(update);
 
 	/* render */
@@ -317,8 +364,37 @@ void game_update_and_render(
 		gray); 
 
 	editor_draw_tilemap(state);
-	/* TODO: draw unit type counters */
-	/* TODO: display 'saved' if most recent changes have been saved and 'recent changes not saved' or smn if not */
+
+	/* TODO: hardcoded numbers for position. prob readjust this/create macros, after you've made tile width's adjust to
+	 * # of tiles */
+	draw_text_in_buffer(
+		state->pixel_buffer, state->pixel_buffer_width, state->pixel_buffer_height, 
+		state->pixel_buffer_width - 120, 20, 1, blue_counter_text, white);
+	draw_text_in_buffer(
+		state->pixel_buffer, state->pixel_buffer_width, state->pixel_buffer_height, 
+		state->pixel_buffer_width - 120, 40, 1, green_counter_text, white);
+	draw_text_in_buffer(
+		state->pixel_buffer, state->pixel_buffer_width, state->pixel_buffer_height, 
+		state->pixel_buffer_width - 120, 60, 1, red_counter_text, white);
+
+	jstring saved_string = jstring_create_temporary("ALL CHANGES SAVED", jstring_length("ALL CHANGES SAVED"));
+	jstring not_saved_string = 
+		jstring_create_temporary(
+			"NOT ALL CHANGES HAVE BEEN SAVED", 
+			jstring_length("NOT ALL CHANGES HAVE BEEN SAVED"));
+
+	if(state->tilemap_saved)
+	{
+		draw_text_in_buffer(
+			state->pixel_buffer, state->pixel_buffer_width, state->pixel_buffer_height, 
+			20, state->pixel_buffer_height - 20, 1, saved_string, white);
+	}
+	else
+	{
+		draw_text_in_buffer(
+			state->pixel_buffer, state->pixel_buffer_width, state->pixel_buffer_height, 
+			20, state->pixel_buffer_height - 20, 1, not_saved_string, white);
+	}
 
 	PROFILER_FINISH_TIMING_BLOCK(render);
 
@@ -344,7 +420,7 @@ static void editor_draw_tilemap(game_state *state)
 			i32 tile_index = y * map_width + x;
 			t = get_tile_from_index(state, tile_index);
 
-			struct_rgba_color color;
+			rgba_color color;
 			switch(t->tile_type)
 			{
 				case TILE_TYPE_BLUE:
@@ -377,8 +453,8 @@ static void editor_draw_tilemap(game_state *state)
 				state->pixel_buffer,
 				state->pixel_buffer_width,
 				state->pixel_buffer_height,
-				TILE_SIZE * x + TILE_SIZE, TILE_SIZE * y + TILE_SIZE,
-				TILE_SIZE, TILE_SIZE, color);
+				state->tile_size * x + TILEMAP_OFFSET_X, state->tile_size * y + TILEMAP_OFFSET_Y,
+				state->tile_size, state->tile_size, color);
 
 			color.r = 0;
 			color.g = 0;
@@ -414,8 +490,9 @@ static void editor_draw_tilemap(game_state *state)
 					state->pixel_buffer,
 					state->pixel_buffer_width,
 					state->pixel_buffer_height,
-					TILE_SIZE * x + (TILE_SIZE + TILE_SIZE / 5), TILE_SIZE * y + (TILE_SIZE + TILE_SIZE / 5),
-					(TILE_SIZE / 5) * 3, (TILE_SIZE / 5) * 3, color);
+					state->tile_size * x + (TILEMAP_OFFSET_X + state->tile_size / 5), state->tile_size * y + 
+						(TILEMAP_OFFSET_Y + state->tile_size / 5),
+					(state->tile_size / 5) * 3, (state->tile_size / 5) * 3, color);
 			}
 		}
 	}
@@ -431,8 +508,8 @@ static i32 get_tile_index_from_mouse_coords(game_state *state, x_input_state *in
 	i32 x = input->mouse_x;
 	i32 y = input->mouse_y;
 
-	i32 tile_x = (x - TILE_SIZE) / TILE_SIZE;
-	i32 tile_y = (y - TILE_SIZE) / TILE_SIZE;
+	i32 tile_x = (x - TILEMAP_OFFSET_X) / state->tile_size;
+	i32 tile_y = (y - TILEMAP_OFFSET_Y) / state->tile_size;
 
 	if(tile_x >= state->tilemap_data->width)
 	{
@@ -442,11 +519,11 @@ static i32 get_tile_index_from_mouse_coords(game_state *state, x_input_state *in
 	{
 		return(-1);
 	}
-	if(x < TILE_SIZE)
+	if(x < TILEMAP_OFFSET_X)
 	{
 		return(-1);
 	}
-	if(y < TILE_SIZE)
+	if(y < TILEMAP_OFFSET_Y)
 	{
 		return(-1);
 	}
@@ -479,36 +556,78 @@ static void editor_change_tile_at_mouse_location(game_state *state, x_input_stat
 
 static void editor_change_tilemap_width(game_state *state, b32 increment)
 {
-	/* TODO: move tiles around so that each tile that is still in the map remains the same */
-
 	if(increment)
 	{
 		if(state->tilemap_data->width< MAX_TILEMAP_HEIGHT)
 		{
 			state->tilemap_data->width++;
 			state->tilemap_saved = false;
+
+			i32 old_width = state->tilemap_data->width - 1;
+
+			i32 tile_index = state->tilemap_data->width * state->tilemap_data->height - 1;
+			for( ; tile_index >= 0; tile_index--)
+			{
+				i32 shift_amount = tile_index / old_width;
+				tile *t = get_tile_from_index(state, tile_index);
+				tile *t_shifted = get_tile_from_index(state, tile_index + shift_amount);
+				t_shifted->unit_type = t->unit_type;
+				t_shifted->tile_type = t->tile_type;
+				if(shift_amount != 0)
+				{
+					t->tile_type = TILE_TYPE_BLUE;
+					t->unit_type = UNIT_TYPE_NONE;
+				}
+			}
 		}
+		state->tile_size = TILE_SIZE_COEFFICIENT / max_i32(state->tilemap_data->width, state->tilemap_data->height);
 		return;
 	}
 	if(state->tilemap_data->width> 1)
 	{
 		state->tilemap_data->width--;
 		state->tilemap_saved = false;
+
+		i32 old_width = state->tilemap_data->width + 1;
+
+		i32 tile_index = 0;
+		for( ; tile_index < old_width * state->tilemap_data->height; tile_index++)
+		{
+			i32 shift_amount = tile_index / old_width;
+			log_debug("tile: %d, shift amount: %d", tile_index, shift_amount);
+			tile *t = get_tile_from_index(state, tile_index);
+			tile *t_shifted = get_tile_from_index(state, tile_index - shift_amount);
+			t_shifted->unit_type = t->unit_type;
+			t_shifted->tile_type = t->tile_type;
+			if(shift_amount != 0)
+			{
+				t->tile_type = TILE_TYPE_BLUE;
+				t->unit_type = UNIT_TYPE_NONE;
+			}
+		}
 	}
+	state->tile_size = TILE_SIZE_COEFFICIENT / max_i32(state->tilemap_data->width, state->tilemap_data->height);
 }
 
 static void editor_change_tilemap_height(game_state *state, b32 increment)
 {
-	/* NOTE(josh): no need to rearrange tiles like we do in editor_change_tilemap_width, since this one simply adds
-	* or removes the last row */
-	/* TODO: ^ even so maybe set the removed tiles to all be blue and empty when height decreased ? */
 	if(increment)
 	{
 		if(state->tilemap_data->height < MAX_TILEMAP_HEIGHT)
 		{
 			state->tilemap_data->height++;
 			state->tilemap_saved = false;
+			
+			/* first tile of last row */
+			i32 tile_index = state->tilemap_data->width * (state->tilemap_data->height - 1);
+			for( ; tile_index < state->tilemap_data->width * state->tilemap_data->height; tile_index++)
+			{
+				tile *t = get_tile_from_index(state, tile_index);
+				t->unit_type = UNIT_TYPE_NONE;
+				t->tile_type = TILE_TYPE_BLUE;
+			}
 		}
+		state->tile_size = TILE_SIZE_COEFFICIENT / max_i32(state->tilemap_data->width, state->tilemap_data->height);
 		return;
 	}
 	if(state->tilemap_data->height > 1)
@@ -516,8 +635,71 @@ static void editor_change_tilemap_height(game_state *state, b32 increment)
 		state->tilemap_data->height--;
 		state->tilemap_saved = false;
 	}
+	state->tile_size = TILE_SIZE_COEFFICIENT / max_i32(state->tilemap_data->width, state->tilemap_data->height);
 }
 
 static void editor_change_tilemap_unit_counter(game_state *state, b32 increment, i32 unit_counter_type)
 {
+	if(increment)
+	{
+		switch(unit_counter_type)
+		{
+			case UNIT_COUNTER_BLUE:
+			{
+				state->tilemap_data->blue_counter++;
+				state->tilemap_saved = false;
+				return;
+			} break;
+			case UNIT_COUNTER_GREEN:
+			{
+				state->tilemap_data->green_counter++;
+				state->tilemap_saved = false;
+				return;
+			} break;
+			case UNIT_COUNTER_RED:
+			{
+				state->tilemap_data->red_counter++;
+				state->tilemap_saved = false;
+				return;
+			} break;
+			default:
+			{
+				_assert_log(0, "unexpected unit_counter_type: %d", unit_counter_type);
+			} break;
+		}
+	}
+	switch(unit_counter_type)
+	{
+		case UNIT_COUNTER_BLUE:
+		{
+			if(state->tilemap_data->blue_counter > 0)
+			{
+				state->tilemap_data->blue_counter--;
+				state->tilemap_saved = false;
+			}
+			return;
+		} break;
+		case UNIT_COUNTER_GREEN:
+		{
+			if(state->tilemap_data->green_counter > 0)
+			{
+				state->tilemap_data->green_counter--;
+				state->tilemap_saved = false;
+			}
+			return;
+		} break;
+		case UNIT_COUNTER_RED:
+		{
+			if(state->tilemap_data->red_counter > 0)
+			{
+				state->tilemap_data->red_counter--;
+				state->tilemap_saved = false;
+			}
+			return;
+		} break;
+		default:
+		{
+			_assert_log(0, "unexpected unit_counter_type: %d", unit_counter_type);
+		} break;
+	}
 }

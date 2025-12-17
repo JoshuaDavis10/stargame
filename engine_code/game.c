@@ -63,7 +63,7 @@ void game_draw_shape(
 		u16 buffer_height, 
 		struct_game_state *state,
 		u32 shape_index,
-		struct_rgba_color color);
+		rgba_color color);
 
 void game_rotate_shape(
 		struct_game_state *state,
@@ -732,7 +732,7 @@ void game_draw_shape(
 		u16 buffer_height, 
 		struct_game_state *state,
 		u32 shape_index,
-		struct_rgba_color color)
+		rgba_color color)
 {
 	switch(state->shape_type_list[shape_index])
 	{

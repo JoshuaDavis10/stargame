@@ -5,7 +5,7 @@ typedef struct {
 	u8 g;
 	u8 b;
 	u8 a;
-} struct_rgba_color;
+} rgba_color;
 
 typedef struct {
 	u64 vertex_count;
@@ -14,18 +14,18 @@ typedef struct {
 } render_mesh;
 
 /* TODO: macros */
-static struct_rgba_color red = {255, 0, 0, 0};
-static struct_rgba_color green = {0, 255, 0, 0};
-static struct_rgba_color blue = {0, 0, 255, 0};
+static rgba_color red = {255, 0, 0, 0};
+static rgba_color green = {0, 255, 0, 0};
+static rgba_color blue = {0, 0, 255, 0};
 
-static struct_rgba_color magenta = {255, 0, 255, 0};
-static struct_rgba_color cyan = {0, 255, 255, 0};
-static struct_rgba_color yellow = {255, 255, 0, 0};
-static struct_rgba_color orange = {255, 150, 0, 0};
+static rgba_color magenta = {255, 0, 255, 0};
+static rgba_color cyan = {0, 255, 255, 0};
+static rgba_color yellow = {255, 255, 0, 0};
+static rgba_color orange = {255, 150, 0, 0};
 
-static struct_rgba_color white = {255, 255, 255, 0};
-static struct_rgba_color black = {0, 0, 0, 0};
-static struct_rgba_color gray = {40, 40, 40, 40};
+static rgba_color white = {255, 255, 255, 0};
+static rgba_color black = {0, 0, 0, 0};
+static rgba_color gray = {40, 40, 40, 40};
 
 static vector_4 blue4 = {0.0f, 0.0f, 1.0f, 1.0f};
 static vector_4 cyan4 = {0.0f, 1.0f, 1.0f, 1.0f};
@@ -43,7 +43,7 @@ void draw_pixel_in_buffer_rgba(
 		u16 buffer_width,
 		u16 buffer_height,
 		u32 pixel,
-		struct_rgba_color color)
+		rgba_color color)
 {
 	if(pixel < buffer_width * buffer_height)
 	{
@@ -289,7 +289,7 @@ void draw_background_in_buffer_asm(
 		u8 *pixel_buffer,
 		u16 buffer_width, 
 		u16 buffer_height,
-		struct_rgba_color color) 
+		rgba_color color) 
 {
 	PROFILER_START_TIMING_BANDWIDTH(clear_background, 
 		(u64)(buffer_width*buffer_height*4));
@@ -328,7 +328,7 @@ void draw_background_in_buffer(
 		u8 *pixel_buffer,
 		u16 buffer_width, 
 		u16 buffer_height,
-		struct_rgba_color color) 
+		rgba_color color) 
 {
 
 	PROFILER_START_TIMING_BANDWIDTH(clear_background, 
@@ -364,7 +364,7 @@ void draw_line_in_buffer(
 		u16 buffer_height,
 		i32 x1, i32 y1,
 		i32 x2, i32 y2,
-		struct_rgba_color color)
+		rgba_color color)
 {
 	i32 xdist = x2 - x1;
 	i32 ydist = y2 - y1;
@@ -462,7 +462,7 @@ void draw_nofill_triangle_in_buffer(
 		u32 x1, u32 y1, 
 		u32 x2, u32 y2, 
 		u32 x3, u32 y3, 
-		struct_rgba_color color)
+		rgba_color color)
 {
 	draw_line_in_buffer(
 		pixel_buffer,
@@ -494,7 +494,7 @@ void draw_fill_rectangle_in_buffer(
 		u16 buffer_width, u16 buffer_height,
 		u32 x, u32 y, 
 		u32 w, u32 h,
-		struct_rgba_color color) 
+		rgba_color color) 
 {
 	u32 col;
 	u32 row;
@@ -518,7 +518,7 @@ void draw_nofill_rectangle_in_buffer(
 		u16 buffer_width, u16 buffer_height,
 		u32 x, u32 y, 
 		u32 w, u32 h,
-		struct_rgba_color color)
+		rgba_color color)
 {
 	u32 col;
 	u32 row;
@@ -569,7 +569,7 @@ void draw_nofill_circle_in_buffer(
 		u8 *pixel_buffer, 
 		u16 buffer_width, u16 buffer_height,
 		i32 cx, i32 cy, f32 r,
-		struct_rgba_color color)
+		rgba_color color)
 {
 	f32 x = 0;
 	f32 y = -r;
@@ -659,7 +659,7 @@ void draw_nofill_polygon_in_buffer(
 		u16 buffer_width, u16 buffer_height,
 		u32 num_points,
 		i32 *points, /* NOTE: x,y,x,y,x,y,etc... */
-		struct_rgba_color color)
+		rgba_color color)
 {
 	/* draw line from point -> point sequentially */
 	u32 counter;
@@ -695,7 +695,7 @@ void draw_character_in_buffer(
 		i32 x, i32 y,
 		u8 font_size,
 		char character,
-		struct_rgba_color color)
+		rgba_color color)
 {
 	/* TODO: 49, because we have a hardcoded font size for now
 	 * at some point obviously, I'll want a more complex text
@@ -1118,7 +1118,7 @@ void draw_text_in_buffer_centered(
 		i32 x, i32 y,
 		u8 font_size,
 		jstring text,
-		struct_rgba_color color)
+		rgba_color color)
 {
 	/* TODO: */
 	i32 char_x = x - (( (font_size * 7 + font_size) / 2 ) * text.length);
@@ -1159,7 +1159,7 @@ void draw_text_in_buffer(
 		i32 x, i32 y,
 		u8 font_size,
 		jstring text,
-		struct_rgba_color color)
+		rgba_color color)
 {
 	/* TODO: */
 	i32 char_x = x;
