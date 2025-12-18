@@ -283,8 +283,11 @@ void draw_mesh(u8 *pixel_buffer, u16 buffer_width, u16 buffer_height, render_mes
 		mesh.vertex_count);
 }
 
+/*
 extern void FILL_PIXELS_ASM(u8 *pixel_buffer, u64 count, void *color_data);
+*/
 
+/*
 void draw_background_in_buffer_asm(
 		u8 *pixel_buffer,
 		u16 buffer_width, 
@@ -295,12 +298,12 @@ void draw_background_in_buffer_asm(
 		(u64)(buffer_width*buffer_height*4));
 	u64 count = buffer_width * buffer_height;
 
-	/*
+	*
 	 * TODO: trying to figure out how to write the color 2 at a time by storing in a 64 bit value, but was causing an illegal
 	 * instruction crash
 	u64 color_64_bit = ((u64)color.b << 56) + ((u64)color.g << 48) + ((u64)color.r << 40)+ ((u64)color.a << 32) + 
 					   ((u64)color.b << 24) + ((u64)color.g << 16) + ((u64)color.r << 8) + ((u64)color.a);
-					   */
+					   *
 
 	u32 color_32_bit[8]; 
 	u32 index = 0;
@@ -313,16 +316,17 @@ void draw_background_in_buffer_asm(
 
 	FILL_PIXELS_ASM(pixel_buffer, asm_bytes_to_write, (void*)color_32_bit);
 
-	/* TODO: draw the remaining pixels 
+	* TODO: draw the remaining pixels 
 	u32 index = 0;
 	for( ; index < (count % 4); index++)
 	{
 
 	}
-	*/
+	*
 
 	PROFILER_FINISH_TIMING_BLOCK(clear_background);
 }
+*/
 
 void draw_background_in_buffer(
 		u8 *pixel_buffer,

@@ -308,38 +308,109 @@ u64 read_cpu_frequency()
 /* file I/O */
 u64 get_file_size(const char *filename)
 {
-	u64 file_size = 0;
+	HANDLE file_handle = CreateFileA(
+		filename, 
+		0, /* NOTE(josh): desired access is neither read/write, since we're just gettint the size then closing it */
+		0, /* NOTE(josh): I think a 0 here means only this process can use the file until this process closes it */
+		0, /* NOTE(josh): some optional parameter (security attributes) */
+		OPEN_EXISTING, /* NOTE(josh): only open the file if it exists */
+		FILE_ATTRIBUTE_NORMAL, /* NOTE(josh): no special attributes... but I'm not rlly sure what attributes are lol */
+		0); /* NOTE(josh): another optional parameter (htemplate file) ? */
+	
+	if(file_handle == INVALID_HANDLE_VALUE)
+	{
+		log_error("get_file_size: CreateFileA failed on file: '%s' (error code: %d)", filename, GetLastError());
+		return(0);
+	}
 
-	/* XXX */
-	/*
-HANDLE CreateFileA(
-  [in]           LPCSTR                lpFileName,
-  [in]           DWORD                 dwDesiredAccess,
-  [in]           DWORD                 dwShareMode,
-  [in, optional] LPSECURITY_ATTRIBUTES lpSecurityAttributes,
-  [in]           DWORD                 dwCreationDisposition,
-  [in]           DWORD                 dwFlagsAndAttributes,
-  [in, optional] HANDLE                hTemplateFile
-);
+	ULARGE_INTEGER file_size_union;
+	file_size_union.LowPart = (u64)GetFileSize(file_handle, &(file_size_union.HighPart));
 
-	file_size = GetFileSize(
-	DWORD GetFileSize(
-	  [in]            HANDLE  hFile,
-	  [out, optional] LPDWORD lpFileSizeHigh
-	);
-	*/
+	if(file_size_union.LowPart == INVALID_FILE_SIZE)
+	{
+		log_error("get_file_size: GetFileSize failed on file: '%s' (error code: %d)", filename, GetLastError());
+		return(0);
+	}
+
+	if(!CloseHandle(file_handle))
+	{
+		log_error("get_file_size: CloseHandle failed on file: '%s' (error code: %d)", filename, GetLastError());
+		return(0);
+	}
+
+	u64 file_size = (u64)file_size_union.QuadPart;
 	return(file_size);
 }
 
 b32 create_file_read_write(const char *filename)
 {
-	/* XXX: */
+	HANDLE file_handle = CreateFileA(
+		filename, 
+		GENERIC_READ | GENERIC_WRITE, /* NOTE(josh): read and write privileges */
+		0, /* NOTE(josh): I think a 0 here means only this process can use the file until this process closes it */
+		0, /* NOTE(josh): some optional parameter (security attributes) */
+		CREATE_NEW, /* NOTE(josh): only create the file if it doesn't exist */
+		FILE_ATTRIBUTE_NORMAL, /* NOTE(josh): no special attributes... but I'm not rlly sure what attributes are lol */
+		0); /* NOTE(josh): another optional parameter (htemplate file) ? */
+	
+	if(file_handle == INVALID_HANDLE_VALUE)
+	{
+		log_error("get_file_size: CreateFileA failed on file: '%s' (error code: %d)", filename, GetLastError());
+		return(0);
+	}
+
+	ULARGE_INTEGER file_size_union;
+	file_size_union.LowPart = (u64)GetFileSize(file_handle, &(file_size_union.HighPart));
+
+	if(file_size_union.LowPart == INVALID_FILE_SIZE)
+	{
+		log_error("get_file_size: GetFileSize failed on file: '%s' (error code: %d)", filename, GetLastError());
+		return(0);
+	}
+
+	if(!CloseHandle(file_handle))
+	{
+		log_error("get_file_size: CloseHandle failed on file: '%s' (error code: %d)", filename, GetLastError());
+		return(0);
+	}
 	return(true);
 }
 
 b32 read_file_into_buffer(const char *filename, void *buffer, u64 buffer_size)
 {
-	/* XXX: */
+	HANDLE file_handle = CreateFileA(
+		filename, 
+		GENERIC_READ, /* NOTE(josh): just reading the file so no need for write access */
+		0, /* NOTE(josh): I think a 0 here means only this process can use the file until this process closes it */
+		0, /* NOTE(josh): some optional parameter (security attributes) */
+		OPEN_EXISTING, /* NOTE(josh): only open the file if it exists */
+		FILE_ATTRIBUTE_NORMAL, /* NOTE(josh): no special attributes... but I'm not rlly sure what attributes are lol */
+		0); /* NOTE(josh): another optional parameter (htemplate file) ? */
+	
+	if(file_handle == INVALID_HANDLE_VALUE)
+	{
+		log_error("read_file_into_buffer: CreateFileA failed on file: '%s' (error code: %d)", filename, GetLastError());
+		return(false);
+	}
+
+	DWORD bytes_read;
+
+	/* NOTE(josh): last param is lpOverLapped, which is only needed if the file was opened with FILE_FLAG_OVERLAPPED
+	 * otherwise 0 is fine */
+	if(!ReadFile(file_handle, buffer, (DWORD)buffer_size, &bytes_read, 0))
+	{
+		log_error("read_file_into_buffer: ReadFile failed on file: '%s' (error code: %d)", filename, GetLastError());
+		return(false);
+	}
+
+	_assert((u64)bytes_read <= buffer_size);
+
+	if(!CloseHandle(file_handle))
+	{
+		log_error("read_file_into_buffer: CloseHandle failed on file: '%s' (error code: %d)", filename, GetLastError());
+		return(false);
+	}
+
 	return(true);
 }
 
@@ -347,13 +418,71 @@ b32 read_file_into_buffer(const char *filename, void *buffer, u64 buffer_size)
 
 b32 write_buffer_into_file_truncate(const char *filename, void *buffer, u64 buffer_size)
 {
-	/* XXX: */
+	HANDLE file_handle = CreateFileA(
+		filename, 
+		GENERIC_WRITE, /* NOTE(josh): just writing to the file so no need for read access */
+		0, /* NOTE(josh): I think a 0 here means only this process can use the file until this process closes it */
+		0, /* NOTE(josh): some optional parameter (security attributes) */
+		TRUNCATE_EXISTING, /* NOTE(josh): only open the file if it exists, then truncate it */
+		FILE_ATTRIBUTE_NORMAL, /* NOTE(josh): no special attributes... but I'm not rlly sure what attributes are lol */
+		0); /* NOTE(josh): another optional parameter (htemplate file) ? */
+	
+	if(file_handle == INVALID_HANDLE_VALUE)
+	{
+		log_error("write_buffer_into_file_truncate: CreateFileA failed on file: '%s' (error code: %d)", filename, GetLastError());
+		return(false);
+	}
+
+	DWORD bytes_written; 
+
+	if(!WriteFile(file_handle, buffer, buffer_size, &bytes_written, 0))
+	{
+		log_error("write_buffer_into_file_truncate: WriteFile failed on file: '%s' (error code: %d)", filename, GetLastError());
+		return(false);
+	}
+
+	if(!CloseHandle(file_handle))
+	{
+		log_error("write_buffer_into_file_truncate: CloseHandle failed on file: '%s' (error code: %d)", filename, GetLastError());
+		return(false);
+	}
+
 	return(true);
 }
 
 b32 write_buffer_into_file_append(const char *filename, void *buffer, u64 buffer_size)
 {
-	/* XXX: */
+	HANDLE file_handle = CreateFileA(
+		filename, 
+		FILE_APPEND_DATA, /* NOTE(josh): I guess this flag is what you pass for appending... */
+		0, /* NOTE(josh): I think a 0 here means only this process can use the file until this process closes it */
+		0, /* NOTE(josh): some optional parameter (security attributes) */
+		OPEN_EXISTING, /* NOTE(josh): only open the file if it exists */
+		FILE_ATTRIBUTE_NORMAL, /* NOTE(josh): no special attributes... but I'm not rlly sure what attributes are lol */
+		0); /* NOTE(josh): another optional parameter (htemplate file) ? */
+	
+	if(file_handle == INVALID_HANDLE_VALUE)
+	{
+		log_error("write_buffer_into_file_append: CreateFileA failed on file: '%s' (error code: %d)", filename, GetLastError());
+		return(false);
+	}
+
+	DWORD bytes_written; 
+
+	if(!WriteFile(file_handle, buffer, buffer_size, &bytes_written, 0))
+	{
+		log_error("write_buffer_into_file_append: WriteFile failed on file: '%s' (error code: %d)", filename, GetLastError());
+		return(false);
+	}
+
+	_assert(bytes_written == buffer_size);
+
+	if(!CloseHandle(file_handle))
+	{
+		log_error("write_buffer_into_file_append: CloseHandle failed on file: '%s' (error code: %d)", filename, GetLastError());
+		return(false);
+	}
+
 	return(true);
 }
 

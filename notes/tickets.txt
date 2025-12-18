@@ -20,8 +20,8 @@ TICKETS:
 				 - must be able to handle case where a tile would be changed by 2 tiles and/or units at once, i.e. what is order of operations
 [ ] (1, 6, ALL OTHER PROJECT 1 TICKETS REQUIRED) -> design 10 tutorial/demo/intro levels to hand out as a playtest to friends. obv the game will need to like load them in order, loading lvl one at startup..
 
-[ ] (2, 0, -) -> windows platform layer
-[ ] (2, 1, -) -> IN PROGRESS: win32_util.c
+[ ] (2, 0, -) -> IN PROGRESS: windows platform layer
+[x] (2, 1, -) -> win32_util.c
 
 [ ] (3, 0, -) -> UI code
 				 - menus, buttons, stuff you'll need for UI. KEEP VERY SIMPLE

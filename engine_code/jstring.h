@@ -9,7 +9,7 @@ if(!(expression)) \
 { \
 	jstring_log("JSTRING ASSERTION: %s. file: %s. line: %d", \
 			msg, __FILE__, __LINE__); \
-	char halt = *((char*)0);  \
+	__builtin_trap(); \
 }
 
 /* NOTE: this is how you do a static assert without having to include C 
@@ -56,7 +56,7 @@ typedef double f64;
 #define true 1
 #define false 0 
 
-static void jstring_log_stub(const char*, ...) { }
+static void jstring_log_stub(const char* msg, ...) { }
 static void (*jstring_log)(const char*, ...) = jstring_log_stub;
     
 typedef struct {
@@ -298,7 +298,6 @@ static i32 jstring_compare_jstring(jstring first, jstring second)
 		{
 			return 1;
 		}
-		index++;
 	}
 
 	return 0;

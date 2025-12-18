@@ -59,6 +59,7 @@ f64 absolute_value_f64(f64 x)
 	return x;
 }
 
+/* TODO: there's gotta be some bit manipulation magic way to do this */
 i32 max_i32(i32 x, i32 y)
 {
 	if(x > y)
