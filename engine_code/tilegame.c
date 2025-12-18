@@ -810,7 +810,7 @@ void game_update_and_render(
 	/* render */
 	PROFILER_START_TIMING_BLOCK(render);
 
-	draw_background_in_buffer_asm(
+	draw_background_in_buffer(
 		pixel_buffer,
 		pixel_buffer_width, 
 		pixel_buffer_height,
