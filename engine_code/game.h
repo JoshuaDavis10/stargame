@@ -16,7 +16,7 @@ typedef double f64;
 #define true 1
 #define false 0
 
-#define NUM_X_INPUT_BUTTONS 66
+#define NUM_INPUT_BUTTONS 66
 
 enum {
 	INPUT_BUTTON_STATE_UP = 0x00,
@@ -54,12 +54,13 @@ typedef struct {
 			u8 mouse_left;
 			u8 mouse_right;
 			u8 mouse_wheel;
+			/* XXX: consider making these counters to keep track of how MUCH we should scroll up/down */
 			u8 mouse_wheel_up;
 			u8 mouse_wheel_down;
 		};
-		u8 x_input_buttons[NUM_X_INPUT_BUTTONS];
+		u8 input_buttons[NUM_INPUT_BUTTONS];
 	};
 
 	i16 mouse_x;
 	i16 mouse_y;
-} x_input_state;
+} input_state;

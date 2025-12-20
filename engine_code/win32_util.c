@@ -101,6 +101,7 @@ void log_message(i32 log_type, const char *message, va_list args)
 	char output[MAX_LOGGER_MESSAGE_SIZE];
 	DWORD bytes_written = vsnprintf(output, MAX_LOGGER_MESSAGE_SIZE, message, args);
 	HANDLE std_out_handle = GetStdHandle(STD_OUTPUT_HANDLE);
+	_assert(std_out_handle != INVALID_HANDLE_VALUE);
 
 	switch(log_type)
 	{

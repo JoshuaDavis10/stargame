@@ -1,1 +1,1 @@
-bin\template_game
+bin\template_game build/template_game.dll level_filename_placeholder

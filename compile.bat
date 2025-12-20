@@ -7,16 +7,13 @@ mkdir %build_directory%
 mkdir %binary_directory%
 
 SET cc=clang-cl
-REM TODO more warning flags! plus, whichever ones you switched off on Linux, switch those off as well
 SET cflags=/fsanitize=address /O1 /W3 -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable -Wno-unused-but-set-variable
 
-REM TODO nasm the clear_background.asm
+REM NOTE if we want .asm to do the clear background like we have working on Linux, we'll need a separate .asm file that uses the windows ABI
+REM Additionally, we'll have to link it with the .dll, which I'm not super sure how to do atm
 
-REM TODO how to do if statements in batch?
-
-REM TODO compile it to a .dll
 echo compiling template_game.c...
 %cc% %cflags% /DPROFILER=1 %source_directory%/template_game.c /LD -o %build_directory%/template_game.dll
 echo compiling win32_platform.c...
-%cc% %cflags% %source_directory%/win32_platform.c -o %binary_directory%/template_game.exe
+%cc% %cflags% %source_directory%/win32_platform.c -o %binary_directory%/template_game.exe user32.lib /link /SUBSYSTEM:CONSOLE 
 echo compilation complete.

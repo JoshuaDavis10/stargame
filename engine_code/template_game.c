@@ -24,7 +24,7 @@ void game_update_and_render(
 		u8 *pixel_buffer, 
 		u16 pixel_buffer_width,
 		u16 pixel_buffer_height,
-		x_input_state *input,
+		input_state *input,
 		char *level_filename) 
 
 #endif
@@ -37,17 +37,19 @@ __declspec(dllexport) void game_update_and_render(
 		u8 *pixel_buffer, 
 		u16 pixel_buffer_width,
 		u16 pixel_buffer_height,
-		x_input_state *input,
+		input_state *input,
 		char *level_filename) 
 
 #endif
 {
+	/*
 	start_profile();
 
 	PROFILER_START_TIMING_BLOCK(game_update_and_render);
 
-	log_info("THIS IS TEMPLATE GAME!!!");
+	log_info("THIS IS TEMPLATE GAME!!! (using level file %s)", level_filename);
 
 	PROFILER_FINISH_TIMING_BLOCK(game_update_and_render);
 	finish_and_print_profile(log_trace);
+	*/
 }

@@ -30,8 +30,12 @@ TICKETS:
 				 - level select, fade out of levels when win and go back to level select
 				 - clear instructions on how to play
 [ ] (3, 2, 0) -> UI for editor (honestly totally optional for completing a demo bc only you are using editor it can be as scuffed as u want as long as it works)
+[ ] (4, 0, -) -> win32 sound system
+[ ] (4, 1, -) -> linux sound system
+[ ] (4; 2; 0,1) -> sounds for tilegame
 
 PROJECTS:
 1 Editor + 10 intro/tutorial/demo levels
 2 Windows Port
 3 UI
+4 sound

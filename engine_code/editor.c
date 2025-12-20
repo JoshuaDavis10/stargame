@@ -59,8 +59,8 @@ enum {
 
 static tile *get_tile_from_index(game_state *state, i32 index);
 
-static void editor_change_unit_at_mouse_location(game_state *state, x_input_state *input, i32 unit_type);
-static void editor_change_tile_at_mouse_location(game_state *state, x_input_state *input, i32 tile_type);
+static void editor_change_unit_at_mouse_location(game_state *state, input_state *input, i32 unit_type);
+static void editor_change_tile_at_mouse_location(game_state *state, input_state *input, i32 tile_type);
 static void editor_change_tilemap_width(game_state *state, b32 increment);
 static void editor_change_tilemap_height(game_state *state, b32 increment);
 static void editor_change_tilemap_unit_counter(game_state *state, b32 increment, i32 unit_counter_type);
@@ -105,7 +105,7 @@ void game_update_and_render(
 		u8 *pixel_buffer, 
 		u16 pixel_buffer_width,
 		u16 pixel_buffer_height,
-		x_input_state *input,
+		input_state *input,
 		char *level_filename) 
 {
 	start_profile();
@@ -503,7 +503,7 @@ static tile *get_tile_from_index(game_state *state, i32 index)
 	return( (tile*)(&(state->tilemap_data->tiles)) + index);
 }
 
-static i32 get_tile_index_from_mouse_coords(game_state *state, x_input_state *input)
+static i32 get_tile_index_from_mouse_coords(game_state *state, input_state *input)
 {
 	i32 x = input->mouse_x;
 	i32 y = input->mouse_y;
@@ -532,7 +532,7 @@ static i32 get_tile_index_from_mouse_coords(game_state *state, x_input_state *in
 	return(tile_index);
 }
 
-static void editor_change_unit_at_mouse_location(game_state *state, x_input_state *input, i32 unit_type)
+static void editor_change_unit_at_mouse_location(game_state *state, input_state *input, i32 unit_type)
 {
 	i32 tile_index = get_tile_index_from_mouse_coords(state, input);
 	if(tile_index != -1)
@@ -543,7 +543,7 @@ static void editor_change_unit_at_mouse_location(game_state *state, x_input_stat
 	}
 }
 
-static void editor_change_tile_at_mouse_location(game_state *state, x_input_state *input, i32 tile_type)
+static void editor_change_tile_at_mouse_location(game_state *state, input_state *input, i32 tile_type)
 {
 	i32 tile_index = get_tile_index_from_mouse_coords(state, input);
 	if(tile_index != -1)
