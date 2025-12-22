@@ -78,6 +78,9 @@ _static_assert(sizeof(signed long long) == 8, unexpected_data_type_size);
 _static_assert(sizeof(float) == 4, unexpected_data_type_size);
 _static_assert(sizeof(double) == 8, unexpected_data_type_size);
 
+#define FRAME_RATE (60.0)
+#define FRAME_TIME_MS (u64)((1.0/FRAME_RATE) * (f64)1000) /* milliseconds */
+
 /* NOTE(josh): guar is for game update and render lol */
 typedef void (*guar)(
 	void *, 
@@ -88,12 +91,13 @@ typedef void (*guar)(
 	input_state *,
 	char *);
 
-static i32 global_window_width  = 896;
-static i32 global_window_height = 504;
+static i32 global_window_width  = 1280;
+static i32 global_window_height = 720;
 static b32 global_window_running = true;
 static input_state global_old_input_state;
 static input_state global_new_input_state;
 static input_state global_game_input_state;
+static u64 global_cpu_frequency;
 
 LRESULT stargame_win32_callback(HWND hwnd, UINT message, WPARAM w_param, LPARAM l_param)
 {
@@ -125,10 +129,8 @@ LRESULT stargame_win32_callback(HWND hwnd, UINT message, WPARAM w_param, LPARAM 
 				case VK_RETURN: { global_new_input_state.tab = (u8)down; } break;
 				case VK_ESCAPE: { global_new_input_state.escape= (u8)down; } break;
 				case VK_SPACE: { global_new_input_state.spacebar = (u8)down; } break;
-				case VK_LCONTROL: { global_new_input_state.left_control = (u8)down; } break;
-				case VK_RCONTROL: { global_new_input_state.right_control = (u8)down; } break;
-				case VK_LSHIFT: { global_new_input_state.left_shift = (u8)down; } break;
-				case VK_RSHIFT: { global_new_input_state.right_shift = (u8)down; } break;
+				case VK_CONTROL: { global_new_input_state.left_control = (u8)down; global_new_input_state.right_control = (u8)down; } break;
+				case VK_SHIFT: { global_new_input_state.left_shift = (u8)down; global_new_input_state.right_shift = (u8)down; } break;
 
 				/* arrows */
 				case VK_LEFT: { global_new_input_state.left_arrow = (u8)down; } break;
@@ -140,7 +142,15 @@ LRESULT stargame_win32_callback(HWND hwnd, UINT message, WPARAM w_param, LPARAM 
 				case VK_F1: { global_new_input_state.fkeys[0] = (u8)down; } break;
 				case VK_F2: { global_new_input_state.fkeys[1] = (u8)down; } break;
 				case VK_F3: { global_new_input_state.fkeys[2] = (u8)down; } break;
-				case VK_F4: { global_new_input_state.fkeys[3] = (u8)down; } break;
+				case VK_F4: 
+				{ 
+					global_new_input_state.fkeys[3] = (u8)down; 
+					if((l_param & (1 << 29)) != 0) 
+					{ 
+						log_trace("ALT + F4 triggered. closing window...");
+						global_window_running = false; 
+					}
+				} break;
 				case VK_F5: { global_new_input_state.fkeys[4] = (u8)down; } break;
 				case VK_F6: { global_new_input_state.fkeys[5] = (u8)down; } break;
 				case VK_F7: { global_new_input_state.fkeys[6] = (u8)down; } break;
@@ -238,8 +248,6 @@ LRESULT stargame_win32_callback(HWND hwnd, UINT message, WPARAM w_param, LPARAM 
 		{
 			/* XXX: I guess this works? the numbers seem a bit off tho. like top left is 0,0 but bot right is like 20-40 pixels off it seems ? */
 			global_new_input_state.mouse_x = (i16)(l_param);
-			log_debug("sizeof(l_param): %u", sizeof(l_param));
-			log_debug("l_param: %x", l_param);
 			if(sizeof(l_param) == 4)
 			{
 				global_new_input_state.mouse_y = (i16)(l_param >> 8);
@@ -248,12 +256,12 @@ LRESULT stargame_win32_callback(HWND hwnd, UINT message, WPARAM w_param, LPARAM 
 			{
 				global_new_input_state.mouse_y = (i16)(l_param >> 16);
 			}
-
-			log_debug("%d, %d", global_new_input_state.mouse_x, global_new_input_state.mouse_y);
 		} break;
 		default:
 		{
+			/*
 			log_trace("stargame_win32_callback (message: %u). handing to DefWindowProcA", message);
+			*/
 			result = DefWindowProcA(hwnd, message, w_param, l_param);
 		} break;
 	}
@@ -298,8 +306,26 @@ int main(int argc, char **argv)
 		_assert_log(0, "failed to create window (error code: %d)", GetLastError());
 	}
 
+	SYSTEM_INFO system_info;
+	GetSystemInfo(&system_info);
+	u64 pagesize = (u64)system_info.dwPageSize;
+	log_debug("pagesize: %llu", pagesize);
+	u64 game_memory_size = 4 * pagesize;
+	void *game_memory = VirtualAlloc(0, game_memory_size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+
+	RECT client_rect;
+	_assert(GetClientRect(stargame_window, &client_rect));
+	log_debug("client width: %d, client height: %d", client_rect.right - client_rect.left, client_rect.bottom - client_rect.top);
+	u64 pixel_buffer_size = sizeof(u8) * 4 * (client_rect.right - client_rect.left) * (client_rect.bottom - client_rect.top);
+	u8 *pixel_buffer = VirtualAlloc(0, pixel_buffer_size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+
 	log_info("Window successfully created. Starting engine loop");
 
+	u64 frame_start_tsc = read_cpu_timer();
+	u64 frame_end_tsc = 0;
+	global_cpu_frequency = read_cpu_frequency();
+	log_debug("cpu freq: %llu", global_cpu_frequency);
+	/* XXX: need to log various steps of startup, see what you do on linux for reference of like what to log */
 	while(global_window_running)
 	{
 		MSG message; 
@@ -316,7 +342,7 @@ int main(int argc, char **argv)
 
 		/* TODO: prepare pixelmap */
 
-		HMODULE dll_handle = LoadLibraryA("build/template_game.dll");
+		HMODULE dll_handle = LoadLibraryA(argv[1]);
 		if(dll_handle == 0)
 		{
 			_assert_log(0, "failed to load .dll (error code: %d)", GetLastError());
@@ -346,9 +372,56 @@ int main(int argc, char **argv)
 		 */
 
 
-		game_update_and_render(0, 0, 0, global_window_width, global_window_height, &global_game_input_state, argv[2]);
+		game_update_and_render(
+			game_memory, 
+			game_memory_size, 
+			pixel_buffer, 
+			client_rect.right - client_rect.left, 
+			client_rect.bottom - client_rect.top, 
+			&global_game_input_state, 
+			argv[2]);
 
 		_assert(FreeLibrary(dll_handle));
+
+		frame_end_tsc = read_cpu_timer();
+		u64 elapsed_ms = (u64)(( ((f64)frame_end_tsc - (f64)frame_start_tsc) / (f64)global_cpu_frequency ) * 1000);
+		if(elapsed_ms > FRAME_TIME_MS)
+		{
+			log_warn("dropped frame (%llu milliseconds spent this frame | frame time goal: %llu).",
+				elapsed_ms, FRAME_TIME_MS);
+			frame_start_tsc = read_cpu_timer();
+			continue;
+		}
+
+		/*
+		log_debug("FRAME_TIME_MS: %llu, elapsed_ms: %llu\n\tSLEEPING for %llu milliseconds", FRAME_TIME_MS, elapsed_ms, FRAME_TIME_MS - elapsed_ms);
+		*/
+
+		Sleep(FRAME_TIME_MS - elapsed_ms);
+
+		frame_start_tsc = read_cpu_timer();
+
+		HDC hdc = GetDC(stargame_window);
+		BITMAPINFO bitmap_info;
+		bitmap_info.bmiHeader.biSize = sizeof(bitmap_info.bmiHeader);
+		bitmap_info.bmiHeader.biWidth = client_rect.right - client_rect.left;
+		bitmap_info.bmiHeader.biHeight = -(client_rect.bottom - client_rect.top);
+		bitmap_info.bmiHeader.biPlanes = 1;
+		bitmap_info.bmiHeader.biBitCount = 32;
+		bitmap_info.bmiHeader.biCompression = BI_RGB;
+
+		_assert_log(
+			StretchDIBits (
+				hdc, 
+				0, 0, client_rect.right - client_rect.left, client_rect.bottom - client_rect.top, 
+				0, 0, client_rect.right - client_rect.left, client_rect.bottom - client_rect.top, 
+				pixel_buffer, &bitmap_info, DIB_RGB_COLORS, SRCCOPY
+			),
+			"StretchDIBBits failed with error code: %d",
+			GetLastError()
+		);
+
+		/* TODO: present pixel buffer to window */
 	}
 
 	log_info("Window closed.");

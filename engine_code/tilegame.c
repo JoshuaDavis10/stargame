@@ -11,7 +11,7 @@
 
 #define FONTSIZE 1
 
-#define STEP_TIME 300000.0
+#define STEP_TIME 700000.0
 
 static const char *unit_type_red_label = "RED";
 static const char *unit_type_green_label = "GREEN";
@@ -220,7 +220,9 @@ static b32 game_initialize_tilemap(game_state *state, u64 *used_memory, void *ga
 		state->memory.tiles[index] = level_tile_data_pointer[index];
 	}
 
-	state->memory.tile_stride = 8.0f / state->memory.tilemap_width;
+	log_debug("tilemap width: %d", state->memory.tilemap_width);
+	state->memory.tile_stride = 8.0f / max_i32(state->memory.tilemap_width, state->memory.tilemap_height);
+	log_debug("tile stride : %.2f", state->memory.tile_stride);
 	state->memory.tilemap_offset_x = -(state->memory.tile_stride * state->memory.tilemap_width/2 - state->memory.tile_stride/2);
 	state->memory.tilemap_offset_y = -(state->memory.tile_stride * state->memory.tilemap_height/2 - state->memory.tile_stride/2);
 
@@ -229,30 +231,6 @@ static b32 game_initialize_tilemap(game_state *state, u64 *used_memory, void *ga
 	state->tilemap_initialized = true;
 
 	return(true);
-}
-
-static void game_reset_tilemap(game_state *state)
-{
-	i32 index = 0;
-	for( ; index < (state->memory.tilemap_width * state->memory.tilemap_height); index++)
-	{
-		state->memory.tiles[index].tile_type = TILE_TYPE_BLUE;
-		state->memory.tiles[index].unit_type = UNIT_TYPE_NONE;
-	}
-	state->memory.tiles[2].tile_type = TILE_TYPE_RED;
-	state->memory.tiles[4].tile_type = TILE_TYPE_GREEN;
-	state->memory.tiles[6].tile_type = TILE_TYPE_GREEN;
-	state->memory.tiles[2].unit_type = UNIT_TYPE_RED;
-	state->memory.tiles[3].tile_type = TILE_TYPE_GREEN;
-
-	state->memory.tile_stride = 8.0f / state->memory.tilemap_width;
-	state->memory.tilemap_offset_x = -(state->memory.tile_stride * state->memory.tilemap_width/2 - state->memory.tile_stride/2);
-	state->memory.tilemap_offset_y = -(state->memory.tile_stride * state->memory.tilemap_height/2 - state->memory.tile_stride/2);
-
-	state->memory.blue_count = 3;
-	state->memory.green_count = 1;
-	state->memory.red_count = 0;
-
 }
 
 static void game_draw_mesh(vector_2 position, mesh_type type, game_state *state)
@@ -585,6 +563,8 @@ static i32 tile_from_world_coords(f32 x, f32 y, game_state *state)
 
 static void game_step_through_move(game_state *state);
 
+#ifdef __linux__
+
 void game_update_and_render(
 		void *game_memory,
 		u64 game_memory_size,
@@ -593,6 +573,18 @@ void game_update_and_render(
 		u16 pixel_buffer_height,
 		input_state *input,
 		char *level_filename) 
+#endif
+
+#ifdef _WIN32
+__declspec(dllexport) void game_update_and_render(
+		void *game_memory,
+		u64 game_memory_size,
+		u8 *pixel_buffer, 
+		u16 pixel_buffer_width,
+		u16 pixel_buffer_height,
+		input_state *input,
+		char *level_filename) 
+#endif
 {
 	start_profile();
 
@@ -799,6 +791,7 @@ void game_update_and_render(
 			 * sizes... maybe we need to do a free, then reallocate to reset, similar to like in the editor
 			 */
 			_assert(game_initialize_tilemap(state, &used_memory, game_memory, game_memory_size, level_filename));
+			_assert(game_initialize_meshes(state));
 		}
 	}
 	else if(state->state == STATE_STEPPING_THROUGH_MOVE)
@@ -914,6 +907,7 @@ void game_update_and_render(
 		{
 			state->state = STATE_WAITING_FOR_MOVE;
 			_assert(game_initialize_tilemap(state, &used_memory, game_memory, game_memory_size, level_filename));
+			_assert(game_initialize_meshes(state));
 		}
 	}
 
@@ -928,6 +922,7 @@ void game_update_and_render(
 
 static b32 game_initialize_meshes(game_state *state)
 {
+	state->memory.vertex_count = 0;
 	state->memory.mesh_data[MESH_TYPE_TILE_BLUE].positions = state->memory.vertex_position_data + state->memory.vertex_count;
 	state->memory.mesh_data[MESH_TYPE_TILE_BLUE].colors = state->memory.vertex_color_data + state->memory.vertex_count;
 

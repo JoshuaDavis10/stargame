@@ -269,7 +269,11 @@ u64 read_os_timer()
 	LARGE_INTEGER performance_counter;
 	_assert(QueryPerformanceCounter(&performance_counter));
 
-	return(performance_counter.QuadPart);
+	u64 counter = performance_counter.QuadPart;
+
+	/* NOTE(josh): returns microseconds */
+	u64 us = (u64)(((f64)counter / (f64)read_os_frequency()) * 1000000.0);
+	return(us);
 }
 
 u64 read_cpu_timer()
@@ -286,11 +290,10 @@ u64 read_cpu_frequency()
 
 	u64 os_start  = read_os_timer();
 	u64 os_end = 0;
-	u64 os_frequency = read_os_frequency();
 	u64 os_elapsed = 0;
 
 	/* NOTE(josh): this will be #us in 100 ms */
-	u64 os_wait_time = os_frequency * MILLISECONDS_FOR_CALIBRATION / MILLISECS_PER_SEC; 
+	u64 os_wait_time = MICROSECS_PER_SEC * MILLISECONDS_FOR_CALIBRATION / MILLISECS_PER_SEC; 
 
 	while(os_elapsed < os_wait_time)
 	{
@@ -305,6 +308,37 @@ u64 read_cpu_frequency()
 
 	return(cpu_frequency);
 }
+
+/*
+u64 read_cpu_frequency()
+{
+	u64 cpu_start = read_cpu_timer();
+	u64 cpu_end = 0;
+	u64 cpu_frequency = 0;
+	u64 cpu_elapsed = 0;
+
+	u64 os_start  = read_os_timer();
+	u64 os_end = 0;
+	u64 os_frequency = read_os_frequency();
+	u64 os_elapsed = 0;
+
+	u64 os_wait_time = os_frequency * MILLISECONDS_FOR_CALIBRATION / MILLISECS_PER_SEC; 
+
+	while(os_elapsed < os_wait_time)
+	{
+		os_end = read_os_timer();
+		os_elapsed = os_end - os_start;
+	}
+
+	cpu_end = read_cpu_timer();
+	cpu_elapsed = cpu_end - cpu_start;
+	u64 os_elapsed_ms = (u64)(((f64)os_elapsed / os_frequency) * 1000);
+
+	cpu_frequency = MILLISECS_PER_SEC * cpu_elapsed / os_elapsed_ms;
+
+	return(cpu_frequency);
+}
+*/
 
 /* file I/O */
 u64 get_file_size(const char *filename)

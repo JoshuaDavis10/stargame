@@ -19,7 +19,7 @@ typedef struct {
 
 #define TILEMAP_OFFSET_X 50
 #define TILEMAP_OFFSET_Y 50
-#define TILE_SIZE_COEFFICIENT 400
+#define TILE_SIZE_COEFFICIENT 350
 
 typedef struct {
 	u32 blue_counter;
@@ -65,8 +65,6 @@ static void editor_change_tilemap_width(game_state *state, b32 increment);
 static void editor_change_tilemap_height(game_state *state, b32 increment);
 static void editor_change_tilemap_unit_counter(game_state *state, b32 increment, i32 unit_counter_type);
 
-static i32 max(i32 x, i32 y);
-
 static void *game_memory_allocate(u64 *used_memory, u64 size, void *game_memory, u64 game_memory_size)
 {
 	_assert((*used_memory) + size <= game_memory_size);
@@ -99,6 +97,7 @@ enum {
 
 static void editor_draw_tilemap(game_state *state);
 
+#ifdef __linux__
 void game_update_and_render(
 		void *game_memory,
 		u64 game_memory_size,
@@ -107,6 +106,18 @@ void game_update_and_render(
 		u16 pixel_buffer_height,
 		input_state *input,
 		char *level_filename) 
+#endif
+
+#ifdef _WIN32
+__declspec(dllexport) void game_update_and_render(
+		void *game_memory,
+		u64 game_memory_size,
+		u8 *pixel_buffer, 
+		u16 pixel_buffer_width,
+		u16 pixel_buffer_height,
+		input_state *input,
+		char *level_filename) 
+#endif
 {
 	start_profile();
 

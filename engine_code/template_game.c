@@ -46,9 +46,11 @@ __declspec(dllexport) void game_update_and_render(
 	start_profile();
 
 	PROFILER_START_TIMING_BLOCK(game_update_and_render);
+	*/
 
-	log_info("THIS IS TEMPLATE GAME!!! (using level file %s)", level_filename);
+	draw_background_in_buffer(pixel_buffer, pixel_buffer_width, pixel_buffer_height, red);	
 
+	/*
 	PROFILER_FINISH_TIMING_BLOCK(game_update_and_render);
 	finish_and_print_profile(log_trace);
 	*/

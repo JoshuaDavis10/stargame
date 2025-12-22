@@ -13,14 +13,14 @@ TICKETS:
 [x] (1, 2, 0) -> FEATURE: adjustable Red, Blue, Green unit counters in editor (i.e. editor can change how many RGB units can be placed for the level being edited)
 [x] (1, 3, 0) -> FEATURE: adjust size of editor's tiles based on width/height of tilemap
 [x] (1, 7, 0) -> if editor is passed nonexistent file, just create a new level with width 1, height 1 or smn
-[ ] (1, 4, -) -> BUGFIX: allow tilegame to reload levels that have just been edited by editor without breaking
+[x] (1, 4, -) -> BUGFIX: allow tilegame to reload levels that have just been edited by editor without breaking
 				 - reallocate memory when reloading a tilemap (tilemap memory must be @ end of game_memory, so it can be freed, reallocated)
 				 - make sure rendered tile size is adjusted after reload and is based on MAX(width, height) rather than width every time. that way any level can fit on screen correctly
 [ ] (1, 5, -) -> FEATURE: tilegame unit placements that cause other units to change, should sort of "recursively" cause those changed units to change their tile, resulting in compounding effects
-				 - must be able to handle case where a tile would be changed by 2 tiles and/or units at once, i.e. what is order of operations
+				 - must be able to handle case where a tile would be changed by 2 tiles at once, i.e. what is order of operations
 [ ] (1, 6, ALL OTHER PROJECT 1 TICKETS REQUIRED) -> design 10 tutorial/demo/intro levels to hand out as a playtest to friends. obv the game will need to like load them in order, loading lvl one at startup..
 
-[ ] (2, 0, -) -> IN PROGRESS: windows platform layer
+[x] (2, 0, -) -> windows platform layer
 [x] (2, 1, -) -> win32_util.c
 
 [ ] (3, 0, -) -> UI code
