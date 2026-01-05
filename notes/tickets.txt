@@ -16,13 +16,39 @@ TICKETS:
 [x] (1, 4, -) -> BUGFIX: allow tilegame to reload levels that have just been edited by editor without breaking
 				 - reallocate memory when reloading a tilemap (tilemap memory must be @ end of game_memory, so it can be freed, reallocated)
 				 - make sure rendered tile size is adjusted after reload and is based on MAX(width, height) rather than width every time. that way any level can fit on screen correctly
-[ ] (1, 5, -) -> FEATURE: tilegame unit placements that cause other units to change, should sort of "recursively" cause those changed units to change their tile, resulting in compounding effects
-				 - must be able to handle case where a tile would be changed by 2 tiles at once, i.e. what is order of operations
-[ ] (1, 6, ALL OTHER PROJECT 1 TICKETS REQUIRED) -> design 10 tutorial/demo/intro levels to hand out as a playtest to friends. obv the game will need to like load them in order, loading lvl one at startup..
+
+*** remaining stuff needed for demo is below ***
+[ ] (1, 5, -) finish demo
+	[ ] tilegame.c rewrite (rewrite all at once and get all these features in rather than trying to knock out one
+		at a time is prob best way to do it. think of each of these as a system that you should program in a way
+		that makes iteration/later changes very easy, and doesn't lock down the game rules early on)
+		* YOU SHOULD JUST STRAIGHT DELETE 'tilegame.c' AND DO AN ACTUAL FULL RE-WRITE
+		- bunch of todos with rendering and initialization of map and meshes
+		- recursive effect -> a changed unit then triggers a "move" as if the unit was placed
+			- maybe try to avoid making levels that use this concept in the demo
+			- it's also totally fine if you decide this is a horrible idea
+				- it might be a horrible idea
+		- additional tile/unit types with different shift targets and stuff
+			- potentially change behaviours of red/green/blue tiles
+			- again, you should avoid using these additional types in the demo, but I just want
+			a re-write so I can have all the systems I want in place
+		- system to have level-specific text thats stored in a file render in each level
+		- system to go through levels in order
+			- on level completion, option to play again ('spacebar') or go to next ('n') or smn like that
+			- just need this system in place for the demo, it doesn't have to work great. eventually we'd want
+			some sort of level menu 
+		- basic UI -> display unit counters in a fun way like have a colored square with a number next to it
+			- make sure player knows goal is to eliminate red squares
+			- display instructions for that lvl + controls ('r', 'g', 'b')
+			- make it clear to player when they can make a move (i.e. previous move is done processing)
+	[ ] demo levels
+		- make sure they work as expected after tilegame.c changes
+		- write more, make sure they have clear instructions and flow in an order that makes sense
 
 [x] (2, 0, -) -> windows platform layer
 [x] (2, 1, -) -> win32_util.c
 
+*** stuff below not needed for demo ***
 [ ] (3, 0, -) -> UI code
 				 - menus, buttons, stuff you'll need for UI. KEEP VERY SIMPLE
 [ ] (3, 1, 0) -> UI for game
@@ -38,4 +64,4 @@ PROJECTS:
 1 Editor + 10 intro/tutorial/demo levels
 2 Windows Port
 3 UI
-4 sound
+4 sound (doubt I'll do it on this project tbh)

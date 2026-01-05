@@ -29,8 +29,17 @@ typedef double f64;
 #include "linux_util.c"
 #include "xcb_input.c" /* NOTE: my xcb input utils file */
 
-#define FRAME_RATE (15.0)
+#define FRAME_RATE (60.0)
 #define FRAME_TIME (u64)((1.0/FRAME_RATE) * (f64)MICROSECS_PER_SEC) /* microseconds */
+
+typedef void (*guar)(
+	void *, 
+	u64, 
+	u8 *, 
+	u16, 
+	u16, 
+	x_input_state *,
+	char *);
 
 /* TODO: platform state struct */
 static x_keymap_info x_global_keymap_info = {0};
@@ -105,16 +114,20 @@ int main(int argc, char **argv)
 	}
 	_assert(x_screen);
 
-	x_global_window_width = 896;
-	x_global_window_height = 504;
+	x_global_window_width = 1024;
+	x_global_window_height = 576;
 
 	/*
 	x_global_window_height = x_screen->height_in_pixels;
 	x_global_window_width = 16 * x_global_window_height / 9;
 	*/
 
+	/*
 	x_global_pixel_buffer_x = (x_screen->width_in_pixels - x_global_window_width) / 2;
 	x_global_pixel_buffer_y = (x_screen->height_in_pixels - x_global_window_height) / 2;
+	*/
+	x_global_pixel_buffer_x = 0;
+	x_global_pixel_buffer_y = 0;
 
 	/*generate id to be passed to xcb_create_window*/
 	xcb_window_t x_window_id = xcb_generate_id(x_connection);
@@ -226,7 +239,7 @@ int main(int argc, char **argv)
 	}
 	free(x_wm_state_reply);
 
-
+	/*
 	xcb_intern_atom_cookie_t x_internal_atom_wm_fullscreen =
 		xcb_intern_atom(x_connection, 1, 24, "_NET_WM_STATE_FULLSCREEN");
 	xcb_intern_atom_reply_t *x_wm_fullscreen_reply =
@@ -252,6 +265,7 @@ int main(int argc, char **argv)
 			XCB_ATOM_ATOM,
 			32, 1,
 			&x_atom_wm_fullscreen);
+			*/
 
 	log_info("Set X window properties.");
 
@@ -467,7 +481,7 @@ int main(int argc, char **argv)
 			log_error("dlopen: %s", dlerror());
 		}
 		_assert(game_shared_object_handle);
-		void (*game_update_and_render)() = dlsym(
+		guar game_update_and_render = dlsym(
 				game_shared_object_handle, 
 				"game_update_and_render");
 		if(!game_update_and_render)

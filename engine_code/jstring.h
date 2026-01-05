@@ -39,14 +39,13 @@ JSTRING_STATIC_ASSERT(sizeof(float) == 4,
 JSTRING_STATIC_ASSERT(sizeof(double) == 8, 
 		asserting_double_size_is_eight_bytes);
 
+/*
 typedef signed char i8;
 typedef signed short i16;
 typedef signed int i32;
 typedef signed long long i64;
 typedef unsigned char u8;
-typedef unsigned int b32; /* for "boolean" stuff, this is more so I can 
-						   * remember what stuff is is used for booleans
-						   */
+typedef unsigned int b32; 
 typedef unsigned short u16;
 typedef unsigned int u32;
 typedef unsigned long long u64;
@@ -55,6 +54,7 @@ typedef double f64;
 
 #define true 1
 #define false 0 
+*/
 
 static void jstring_log_stub(const char* msg, ...) { }
 static void (*jstring_log)(const char*, ...) = jstring_log_stub;

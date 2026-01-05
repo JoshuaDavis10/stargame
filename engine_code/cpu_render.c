@@ -89,6 +89,7 @@ void draw_triangles_in_buffer(
 	u16 buffer_height,
 	camera cam,
 	vector_2 position,
+	/* TODO: vertex data will all be in one spot, colors and positions packed together */
 	vector_2 *vertex_positions,
 	vector_4 *vertex_colors,	
 	u32 vertex_count)
