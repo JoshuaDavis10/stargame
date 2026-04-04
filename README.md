@@ -55,10 +55,10 @@ tilegame is a tile based puzzle game. It is really cool, but it's not working ri
 tilegame_editor is the editor for tilegame levels and it is 100% functional. 
 
 Controls:
-- `CTRL + W`  - increase tile grid width (max width  is 7)
-- `CTRL + H`  - increase tile grid width (max height is 7)
-- `SHIFT + W` - decrease tile grid width (max width  is 7)
-- `SHIFT + H` - decrease tile grid width (max height is 7)
+- `CTRL + W`  - increase tile grid width  (max width  is 7)
+- `CTRL + H`  - increase tile grid height (max height is 7)
+- `SHIFT + W` - decrease tile grid width  (min width  is 1)
+- `SHIFT + H` - decrease tile grid height (min height is 1)
 - `B`         - makes tile that mouse is currently over *blue* 
 - `G`         - makes tile that mouse is currently over *green*
 - `R`         - makes tile that mouse is currently over *red*
@@ -81,7 +81,7 @@ particle_test is just a program that I have been using to test my particle syste
 
 ## old_test
 
-old_test was the first functional program to use Stargame's draw_mesh function (see `engine_code/cpu_render.c`). It's not impressive at all, but it was a big milestone to be able to do vertex-based rendering via triangle rasterization and world space -> camera space -> screen space translation (before that point, Stargame could just draw various shapes in screen coordinates). The program was still lying around in my Stargame folder, so I figured I would keep it around for good as a keepsake.
+old_test was the first functional program to use Stargame's `draw_mesh` function (see `engine_code/cpu_render.c`). It's not impressive at all, but it was a big milestone to be able to do vertex-based rendering via triangle rasterization and world space -> camera space -> screen space translation (before that point, Stargame could just draw various shapes in screen coordinates). The program was still lying around in my Stargame folder, so I figured I would keep it around for good as a keepsake.
 
 ## template_game
 
