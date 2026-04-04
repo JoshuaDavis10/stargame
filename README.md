@@ -55,23 +55,23 @@ tilegame is a tile based puzzle game. It is really cool, but it's not working ri
 tilegame_editor is the editor for tilegame levels and it is 100% functional. 
 
 Controls:
-`CTRL + W`  - increase tile grid width (max width  is 7)
-`CTRL + H`  - increase tile grid width (max height is 7)
-`SHIFT + W` - decrease tile grid width (max width  is 7)
-`SHIFT + H` - decrease tile grid width (max height is 7)
-`B`         - makes tile that mouse is currently over *blue* 
-`G`         - makes tile that mouse is currently over *green*
-`R`         - makes tile that mouse is currently over *red*
-`CTRL + B`  - places a *blue*  unit on the tile that the mouse is currently over
-`CTRL + G`  - places a *green* unit on the tile that the mouse is currently over
-`CTRL + R`  - places a *red*   unit on the tile that the mouse is currently over
-`CTRL + 1`  - increases *blue count*  by 1
-`CTRL + 2`  - increases *green count* by 1
-`CTRL + 3`  - increases *red count*   by 1
-`CTRL + 1`  - decreases *blue count*  by 1
-`CTRL + 2`  - decreases *green count* by 1
-`CTRL + 3`  - decreases *red count*   by 1
-`SPACEBAR`  - save changes
+- `CTRL + W`  - increase tile grid width (max width  is 7)
+- `CTRL + H`  - increase tile grid width (max height is 7)
+- `SHIFT + W` - decrease tile grid width (max width  is 7)
+- `SHIFT + H` - decrease tile grid width (max height is 7)
+- `B`         - makes tile that mouse is currently over *blue* 
+- `G`         - makes tile that mouse is currently over *green*
+- `R`         - makes tile that mouse is currently over *red*
+- `CTRL + B`  - places a *blue*  unit on the tile that the mouse is currently over
+- `CTRL + G`  - places a *green* unit on the tile that the mouse is currently over
+- `CTRL + R`  - places a *red*   unit on the tile that the mouse is currently over
+- `CTRL + 1`  - increases *blue count*  by 1
+- `CTRL + 2`  - increases *green count* by 1
+- `CTRL + 3`  - increases *red count*   by 1
+- `CTRL + 1`  - decreases *blue count*  by 1
+- `CTRL + 2`  - decreases *green count* by 1
+- `CTRL + 3`  - decreases *red count*   by 1
+- `SPACEBAR`  - save changes
 
 **NOTE:** blue count, green count, and red count determine how many of each color unit the player can place in the level
 
