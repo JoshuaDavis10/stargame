@@ -4,6 +4,8 @@ This repository contains code for the Stargame engine, which is a CPU rendered g
 
 # Windows
 
+The `clang-cl` compiler is used by the `compile.bat` script. Basically, to get that setup, just install LLVM and add it to your path. Alternatively, you should be able to use any C compiler (at least any that will run on Windows), you will just have to edit the `compile.bat` script. Change `cc` to your C compiler and `cflags` to the equivalent flags for your compiler. Note as well that their are flags such as `/DPROFILER=1`, `/LD`, `/link /SUBSYSTEM:console`, that are all hardcoded within the script in various places, and would need to also be accounted for when editing `compile.bat` to use a C compiler other than `clang-cl`.
+
 To build a particular application, run the `compile.bat` file followed by the name of the app that you want to build.
 
 For example, in Command Prompt:
