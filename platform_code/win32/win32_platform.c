@@ -310,7 +310,7 @@ int main(int argc, char **argv)
 	GetSystemInfo(&system_info);
 	u64 pagesize = (u64)system_info.dwPageSize;
 	log_debug("pagesize: %llu", pagesize);
-	u64 game_memory_size = 4 * pagesize;
+	u64 game_memory_size = 100 * pagesize;
 	void *game_memory = VirtualAlloc(0, game_memory_size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
 	RECT client_rect;

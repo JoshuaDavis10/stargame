@@ -83,18 +83,6 @@ static void game_memory_free(u64 *used_memory, u64 size, void *game_memory, void
 	_assert(expected_game_memory_address == game_memory);
 }
 
-enum {
-	TILEMAP_ACCESS_BLUE_COUNT,
-	TILEMAP_ACCESS_GREEN_COUNT,
-	TILEMAP_ACCESS_RED_COUNT,
-	TILEMAP_ACCESS_WIDTH,
-	TILEMAP_ACCESS_HEIGHT,
-	TILEMAP_ACCESS_TILE_PTR,
-	TILEMAP_ACCESS_TILE_TYPE,
-	TILEMAP_ACCESS_UNIT_TYPE,
-	TILEMAP_ACCESS_COUNT
-};
-
 static void editor_draw_tilemap(game_state *state);
 
 #ifdef __linux__
@@ -460,12 +448,18 @@ static void editor_draw_tilemap(game_state *state)
 					_assert(0);
 				} break;
 			}
-			draw_nofill_rectangle_in_buffer(
+			draw_fill_rectangle_in_buffer(
 				state->pixel_buffer,
 				state->pixel_buffer_width,
 				state->pixel_buffer_height,
 				state->tile_size * x + TILEMAP_OFFSET_X, state->tile_size * y + TILEMAP_OFFSET_Y,
 				state->tile_size, state->tile_size, color);
+			draw_nofill_rectangle_in_buffer(
+				state->pixel_buffer,
+				state->pixel_buffer_width,
+				state->pixel_buffer_height,
+				state->tile_size * x + TILEMAP_OFFSET_X, state->tile_size * y + TILEMAP_OFFSET_Y,
+				state->tile_size, state->tile_size, black);
 
 			color.r = 0;
 			color.g = 0;
@@ -476,15 +470,15 @@ static void editor_draw_tilemap(game_state *state)
 			{
 				case UNIT_TYPE_BLUE:
 				{
-					color.b = 255;
+					color.b = 185;
 				} break;
 				case UNIT_TYPE_GREEN:
 				{
-					color.g = 255;
+					color.g = 185;
 				} break;
 				case UNIT_TYPE_RED:
 				{
-					color.r = 255;
+					color.r = 185;
 				} break;
 				case UNIT_TYPE_NONE:
 				{
@@ -497,7 +491,7 @@ static void editor_draw_tilemap(game_state *state)
 			}
 			if(t->unit_type != UNIT_TYPE_NONE)
 			{
-				draw_nofill_rectangle_in_buffer(
+				draw_fill_rectangle_in_buffer(
 					state->pixel_buffer,
 					state->pixel_buffer_width,
 					state->pixel_buffer_height,

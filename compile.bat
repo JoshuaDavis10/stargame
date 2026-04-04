@@ -14,10 +14,11 @@ REM Additionally, we'll have to link it with the .dll, which I'm not super sure 
 
 REM TODO: need to do like a compile to a temp.dll then move to the actual name so that engine can potentially load the .dll when it is changed (i.e. hot reloading)
 
-echo compiling tilegame.c...
-%cc% %cflags% /DPROFILER=0 %source_directory%/tilegame.c /LD -o %build_directory%/tilegame.dll
-echo compiling editor.c...
-%cc% %cflags% /DPROFILER=0 %source_directory%/editor.c /LD -o %build_directory%/editor.dll
+echo compiling %1.c...
+%cc% %cflags% /DPROFILER=0 %source_directory%/%1.c /LD -o %build_directory%/temp_%1.dll
+move %build_directory%\temp_%1.dll %build_directory%\%1.dll
 echo compiling win32_platform.c...
-%cc% %cflags% %source_directory%/win32_platform.c -o %binary_directory%/template_game.exe user32.lib gdi32.lib /link /SUBSYSTEM:CONSOLE 
+%cc% %cflags% %source_directory%/win32_platform.c -o %binary_directory%/temp_template_game.exe user32.lib gdi32.lib /link /SUBSYSTEM:CONSOLE 
+move %binary_directory%\temp_template_game.exe %binary_directory%\template_game.exe
+move %binary_directory%\temp_template_game.pdb %binary_directory%\template_game.pdb
 echo compilation complete.

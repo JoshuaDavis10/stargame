@@ -60,8 +60,14 @@ TICKETS:
 [ ] (4, 1, -) -> linux sound system
 [ ] (4; 2; 0,1) -> sounds for tilegame
 
+
 PROJECTS:
 1 Editor + 10 intro/tutorial/demo levels
 2 Windows Port
 3 UI
 4 sound (doubt I'll do it on this project tbh)
+5 new colors/rules and stuff ?
+	- change diagonal tiles when placed
+	- change whole row/column when placed
+	- ability to place tiles directly as well as units
+	- if color 'x' is on the board, color 'y' can't be placed
