@@ -1,21 +1,21 @@
 #include "game.h"
 
-#include "util.c"
-#include "jstring.h"
-#include "math.c"
+#include "../engine_code/util.c"
+#include "../engine_code/jstring.h"
+#include "../engine_code/math.c"
 
-#include "profiler.c"
+#include "../engine_code/profiler.c"
 
 typedef struct {
 	vector_2 position;
 	vector_2 bounds; 
 } camera;
 
-#include "cpu_render.c"
+#include "../engine_code/cpu_render.c"
 
 #define JSTRING_MEMORY_SIZE 1024
 
-#include "tile_types.h"
+#include "tilegame/tile_types.h"
 
 #define TILEMAP_OFFSET_X 50
 #define TILEMAP_OFFSET_Y 50
@@ -104,7 +104,8 @@ __declspec(dllexport) void game_update_and_render(
 		u16 pixel_buffer_width,
 		u16 pixel_buffer_height,
 		input_state *input,
-		char *level_filename) 
+		char *level_filename,
+		u64 cpu_frequency) 
 #endif
 {
 	start_profile();
@@ -399,7 +400,7 @@ __declspec(dllexport) void game_update_and_render(
 
 	if(state->timer > 2000000.0)
 	{
-		finish_and_print_profile(log_trace);
+		finish_and_print_profile(log_trace, cpu_frequency);
 		state->timer = 0.0;
 	}
 }

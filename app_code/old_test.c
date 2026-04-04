@@ -1,10 +1,10 @@
 #include "game.h"
 
-#include "linux_util.c"
-#include "jstring.h"
-#include "math.c"
+#include "../engine_code/util.c"
+#include "../engine_code/jstring.h"
+#include "../engine_code/math.c"
 
-#include "profiler.c"
+#include "../engine_code/profiler.c"
 
 typedef struct {
 	vector_2 position;
@@ -14,7 +14,7 @@ typedef struct {
 	vector_2 bounds; 
 } camera;
 
-#include "cpu_render.c"
+#include "../engine_code/cpu_render.c"
 #include <math.h> /* cosf, sinf, sqrt TODO write your own versions */
 
 #define MAX_SHAPE_COUNT 512
@@ -261,6 +261,8 @@ b32 game_add_shape(
 	}
 }
 
+#ifdef __linux__
+
 void game_update_and_render(
 		void *game_memory,
 		u64 game_memory_size,
@@ -269,6 +271,21 @@ void game_update_and_render(
 		u16 pixel_buffer_height,
 		input_state *input,
 		char *level_filename) 
+
+#endif
+
+#ifdef _WIN32
+
+__declspec(dllexport) void game_update_and_render(
+		void *game_memory,
+		u64 game_memory_size,
+		u8 *pixel_buffer, 
+		u16 pixel_buffer_width,
+		u16 pixel_buffer_height,
+		input_state *input,
+		char *level_filename,
+		u64 cpu_frequency) 
+#endif
 {
 	start_profile();
 
@@ -295,7 +312,7 @@ void game_update_and_render(
 		/* set up jstring stuff */
 		/* TODO: store this in game state? or have a game memory struct */
 	void *string_mem = ((char*)game_memory + jstring_memory_size);
-	if(!jstring_load_logging_function(LOG_LIB))
+	if(!jstring_load_logging_function(log_lib))
 	{
 		_assert(0);
 	}
@@ -687,7 +704,7 @@ void game_update_and_render(
 	PROFILER_FINISH_TIMING_BLOCK(render);
 	if(state->timer > 2000000.0)
 	{
-		finish_and_print_profile(log_trace);
+		finish_and_print_profile(log_trace, cpu_frequency);
 		state->timer = 0.0;
 	}
 }

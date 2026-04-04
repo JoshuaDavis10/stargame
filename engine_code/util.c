@@ -1,12 +1,12 @@
 #ifdef __linux__
 
-#include "linux_util.c"
+#include "../platform_code/linux/linux_util.c"
 
 #endif
 
 #ifdef _WIN32
 
-#include "win32_util.c"
+#include "../platform_code/win32/win32_util.c"
 
 #endif
 

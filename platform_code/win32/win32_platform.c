@@ -18,7 +18,7 @@ typedef double f64;
 #define true 1
 #define false 0
 
-#include "util.c"
+#include "win32_util.c"
 
 enum {
 	INPUT_BUTTON_STATE_UP = 0x00,
@@ -89,7 +89,8 @@ typedef void (*guar)(
 	u16, 
 	u16, 
 	input_state *,
-	char *);
+	char *,
+	u64);
 
 static i32 global_window_width  = 1280;
 static i32 global_window_height = 720;
@@ -270,6 +271,8 @@ LRESULT stargame_win32_callback(HWND hwnd, UINT message, WPARAM w_param, LPARAM 
 
 int main(int argc, char **argv)
 {
+	u64 cpu_frequency = read_cpu_frequency();
+
 	HINSTANCE h_instance = GetModuleHandle(NULL);
 	_assert(h_instance != NULL);
 	WNDCLASSA stargame_window_class;
@@ -379,7 +382,8 @@ int main(int argc, char **argv)
 			client_rect.right - client_rect.left, 
 			client_rect.bottom - client_rect.top, 
 			&global_game_input_state, 
-			argv[2]);
+			argv[2],
+			cpu_frequency);
 
 		_assert(FreeLibrary(dll_handle));
 

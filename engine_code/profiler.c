@@ -5,6 +5,8 @@
 #if PROFILER
 
 #define PROFILER_UNIT_COUNT 4096
+
+/* NOTE(josh): PROFILER_END; should go at the bottom of any program that uses the profiler */
 #define PROFILER_END \
 _static_assert(__COUNTER__ < PROFILER_UNIT_COUNT, counter_went_past_profiler_unit_count);
 
@@ -79,7 +81,7 @@ static void start_profile()
 }
 
 /* NOTE(josh): pass whatever logging function you want to use for it */
-static void finish_and_print_profile(void (*logger)(const char *, ...))
+static void finish_and_print_profile(void (*logger)(const char *, ...), u64 cpu_frequency)
 {
 	global_profiler.tsc_end = read_cpu_timer();
 	if(!(logger))
@@ -89,7 +91,6 @@ static void finish_and_print_profile(void (*logger)(const char *, ...))
 
 	u64 total_elapsed = global_profiler.tsc_end - global_profiler.tsc_start;
 
-	u64 cpu_frequency = read_cpu_frequency();
 	/* NOTE(josh): avoiding a division by 0 */
 	_assert(cpu_frequency);
 	logger("PROFILE: Total time: %0.4lfms (CPU freq: %llu | total TSC: %llu)", 
@@ -154,35 +155,8 @@ typedef struct {
 
 static profiler global_profiler = {0};
 
-static void start_profile()
-{
-	global_profiler.tsc_start = read_cpu_timer();
-}
+static void start_profile() { }
 
-/* NOTE(josh): pass whatever logging function you want to use for it */
-static void finish_and_print_profile(void (*logger)(const char *, ...))
-{
-	global_profiler.tsc_end = read_cpu_timer();
-	/* NOTE(josh): commenting this out bc read_cpu_frequency causes a 100ms lag every time
-	 * the profiler prints
-	 */
-	/*
-	if(!(logger))
-	{
-		return;
-	}
-
-	u64 total_elapsed = global_profiler.tsc_end - global_profiler.tsc_start;
-
-	u64 cpu_frequency = read_cpu_frequency();
-	_assert(cpu_frequency);
-	logger("PROFILE: Total time: %0.4lfms (CPU freq: %llu | total TSC: %llu)", 
-		1000.0 * (f64)total_elapsed / (f64)cpu_frequency, cpu_frequency, total_elapsed);
-		*/
-}
+static void finish_and_print_profile(void (*logger)(const char *, ...)) { }
 
 #endif
-
-/* NOTE(josh): put _static_assert(__COUNTER__ < PROFILER_UNIT_COUNT); at end of any program that 
- * uses profiler
- */
